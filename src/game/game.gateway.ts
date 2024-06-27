@@ -24,28 +24,23 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   handleDisconnect(client: Socket) {
     console.log(`Client disconnected: ${client.id}`);
+    const game = this.gameService.removePlayerFromGameByPlayerId(client.id);
+    if (game) {
+      this.server.to(game.id).emit('playerDisconnected', {
+        message: 'Player disconnected, game ended.',
+      });
+      this.server.in(game.id).socketsLeave(game.id); // Remove all sockets from the room
+      this.gameService.removeGame(game.id); // Cleanup the game from service
+    }
   }
 
   @SubscribeMessage('createGame')
-  handleCreateGame(client: Socket, gameId: string) {
-    const game = this.gameService.createGame(gameId);
-    client.join(gameId);
-    client.emit('gameCreated', {
-      id: game.id,
-      chess: game.chess.fen(),
-      players: game.players,
-      turn: game.turn,
-      capturedWhitePieces: game.capturedWhitePieces,
-      capturedBlackPieces: game.capturedBlackPieces,
-    });
-  }
-
-  @SubscribeMessage('joinGame')
-  handleJoinGame(client: Socket, gameId: string) {
-    const game = this.gameService.addPlayerToGame(gameId, client.id);
+  handleCreateGame(client: Socket, gameCode: string) {
+    const game = this.gameService.createGame(gameCode, client.id);
     if (game) {
-      client.join(gameId);
-      this.server.to(gameId).emit('playerJoined', {
+      // Creating a room when a new game is created with game code
+      client.join(gameCode);
+      client.emit('gameCreated', {
         id: game.id,
         chess: game.chess.fen(),
         players: game.players,
@@ -54,7 +49,28 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         capturedBlackPieces: game.capturedBlackPieces,
       });
     } else {
-      client.emit('error', 'Game not found or full');
+      client.emit('error', {
+        event: 'createGame',
+        errorMessage: 'Game already exists!',
+      });
+    }
+  }
+
+  @SubscribeMessage('joinGame')
+  handleJoinGame(client: Socket, gameCode: string) {
+    const game = this.gameService.addPlayerToGame(gameCode, client.id);
+    if (game) {
+      client.join(gameCode);
+      this.server.to(gameCode).emit('playerJoined', {
+        id: game.id,
+        chess: game.chess.fen(),
+        players: game.players,
+        turn: game.turn,
+        capturedWhitePieces: game.capturedWhitePieces,
+        capturedBlackPieces: game.capturedBlackPieces,
+      });
+    } else {
+      client.emit('error', 'Game not found or the lobby is full!');
     }
   }
 
