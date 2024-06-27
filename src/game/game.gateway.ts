@@ -79,7 +79,11 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     client: Socket,
     { gameId, move }: { gameId: string; move: { from: string; to: string } },
   ) {
-    const { valid, game, error } = this.gameService.makeMove(gameId, move);
+    const { valid, game, error } = this.gameService.makeMove(
+      gameId,
+      client.id,
+      move,
+    );
     if (valid && game) {
       this.server.to(gameId).emit('moveMade', {
         id: game.id,

@@ -4,12 +4,14 @@ import { Chess } from 'chess.js';
 interface Game {
   id: string;
   chess: Chess;
-  players: string[];
+  players: {
+    id: string;
+    color: 'w' | 'b';
+  }[];
   turn: 'w' | 'b';
   capturedWhitePieces: string[];
   capturedBlackPieces: string[];
 }
-
 @Injectable()
 export class GameService {
   private games: Map<string, Game> = new Map();
@@ -23,7 +25,7 @@ export class GameService {
     const game: Game = {
       id: gameId,
       chess,
-      players: [clientId],
+      players: [{ id: clientId, color: 'w' }],
       turn: 'w',
       capturedWhitePieces: [],
       capturedBlackPieces: [],
@@ -40,7 +42,8 @@ export class GameService {
   addPlayerToGame(gameId: string, clientId: string): Game | undefined {
     const game = this.games.get(gameId);
     if (game && game.players.length < 2) {
-      game.players.push(clientId);
+      const color = game.players[0].color === 'w' ? 'b' : 'w';
+      game.players.push({ id: clientId, color });
       return game;
     }
     return undefined;
@@ -49,7 +52,9 @@ export class GameService {
   removePlayerFromGameByPlayerId(playerId: string): Game | undefined {
     let removedGame: Game | undefined;
     this.games.forEach((game) => {
-      const playerIndex = game.players.indexOf(playerId);
+      const playerIndex = game.players.findIndex(
+        (player) => player.id === playerId,
+      );
       if (playerIndex > -1) {
         game.players.splice(playerIndex, 1);
         removedGame = game;
@@ -67,10 +72,16 @@ export class GameService {
 
   makeMove(
     gameId: string,
+    playerId: string,
     move: { from: string; to: string },
   ): { valid: boolean; game?: Game; error?: string } {
     const game = this.games.get(gameId);
     if (game) {
+      const player = game.players.find((player) => player.id === playerId);
+      if (!player || game.turn !== player.color) {
+        return { valid: false, error: 'Not your turn' };
+      }
+
       const moveResult = game.chess.move(move);
       if (moveResult) {
         if (moveResult.captured) {
