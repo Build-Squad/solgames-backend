@@ -62,13 +62,13 @@ export class GameService {
     }
 
     // Handle errors
+    if (game?.players?.length >= 2) {
+      error = 'Lobby is full!';
+      errorType = 'LOBBY_FULL';
+    }
     if (!game) {
       error = 'Game not found, please enter a valid invite code!';
       errorType = 'GAME_NOT_FOUND';
-    }
-    if (game.players.length >= 2) {
-      error = 'Lobby is full!';
-      errorType = 'LOBBY_FULL';
     }
 
     return { game: undefined, error, errorType };
