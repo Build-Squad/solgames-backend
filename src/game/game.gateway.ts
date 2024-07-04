@@ -47,7 +47,6 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         id: game.id,
         chess: game.chess.fen(),
         players: game.players,
-        turn: game.turn,
         capturedWhitePieces: game.capturedWhitePieces,
         capturedBlackPieces: game.capturedBlackPieces,
       });
@@ -72,7 +71,6 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         id: game.id,
         chess: game.chess.fen(),
         players: game.players,
-        turn: game.turn,
         capturedWhitePieces: game.capturedWhitePieces,
         capturedBlackPieces: game.capturedBlackPieces,
       });
@@ -100,7 +98,6 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         id: game.id,
         chess: game.chess.fen(),
         players: game.players,
-        turn: game.turn,
         capturedWhitePieces: game.capturedWhitePieces,
         capturedBlackPieces: game.capturedBlackPieces,
       });

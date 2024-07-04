@@ -8,7 +8,6 @@ interface Game {
     id: string;
     color: 'w' | 'b';
   }[];
-  turn: 'w' | 'b';
   capturedWhitePieces: string[];
   capturedBlackPieces: string[];
 }
@@ -33,7 +32,6 @@ export class GameService {
       id: gameId,
       chess,
       players: [{ id: clientId, color: 'w' }],
-      turn: 'w',
       capturedWhitePieces: [],
       capturedBlackPieces: [],
     };
@@ -103,7 +101,7 @@ export class GameService {
     const game = this.games.get(gameId);
     if (game) {
       const player = game.players.find((player) => player.id === playerId);
-      if (!player || game.turn !== player.color) {
+      if (!player || game.chess.turn() !== player.color) {
         return {
           valid: false,
           error: 'Not your turn',
@@ -120,7 +118,6 @@ export class GameService {
             game.capturedWhitePieces.push(moveResult.captured);
           }
         }
-        game.turn = game.chess.turn();
         return { valid: true, game };
       }
       return {
