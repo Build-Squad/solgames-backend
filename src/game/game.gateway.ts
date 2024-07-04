@@ -36,7 +36,10 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('createGame')
   handleCreateGame(client: Socket, gameCode: string) {
-    const game = this.gameService.createGame(gameCode, client.id);
+    const { game, error, errorType } = this.gameService.createGame(
+      gameCode,
+      client.id,
+    );
     if (game) {
       // Creating a room when a new game is created with game code
       client.join(gameCode);
@@ -51,14 +54,18 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     } else {
       client.emit('error', {
         event: 'createGame',
-        errorMessage: 'Game already exists!',
+        errorMessage: error,
+        errorType,
       });
     }
   }
 
   @SubscribeMessage('joinGame')
   handleJoinGame(client: Socket, gameCode: string) {
-    const game = this.gameService.addPlayerToGame(gameCode, client.id);
+    const { game, error, errorType } = this.gameService.addPlayerToGame(
+      gameCode,
+      client.id,
+    );
     if (game) {
       client.join(gameCode);
       this.server.to(gameCode).emit('playerJoined', {
@@ -70,7 +77,11 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         capturedBlackPieces: game.capturedBlackPieces,
       });
     } else {
-      client.emit('error', 'Game not found or the lobby is full!');
+      client.emit('error', {
+        event: 'joinGame',
+        errorMessage: error,
+        errorType,
+      });
     }
   }
 
@@ -79,7 +90,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     client: Socket,
     { gameId, move }: { gameId: string; move: { from: string; to: string } },
   ) {
-    const { valid, game, error } = this.gameService.makeMove(
+    const { valid, game, error, errorType } = this.gameService.makeMove(
       gameId,
       client.id,
       move,
@@ -94,7 +105,11 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         capturedBlackPieces: game.capturedBlackPieces,
       });
     } else {
-      client.emit('error', error);
+      client.emit('error', {
+        event: 'makeMove',
+        errorMessage: `Invalid Move - ${error}`,
+        errorType,
+      });
     }
   }
 }
