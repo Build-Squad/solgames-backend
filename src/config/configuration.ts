@@ -9,8 +9,9 @@ export default {
     db_username: process.env.DATABASE_USERNAME,
     db_password: process.env.DATABASE_PASSWORD,
   },
-  app: {
+  appConfig: {
     nodeEnv: process.env.NODE_ENV,
     port: process.env.PORT,
+    allowedOrigins: process.env.ALLOWED_ORIGINS?.split(',') || [],
   },
 };
