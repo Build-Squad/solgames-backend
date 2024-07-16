@@ -10,6 +10,8 @@ interface Game {
   }[];
   capturedWhitePieces: string[];
   capturedBlackPieces: string[];
+  winner?: 'w' | 'b';
+  gameOver?: boolean;
 }
 @Injectable()
 export class GameService {
@@ -109,22 +111,47 @@ export class GameService {
         };
       }
 
-      const moveResult = game.chess.move(move);
-      if (moveResult) {
-        if (moveResult.captured) {
-          if (moveResult.color === 'w') {
-            game.capturedBlackPieces.push(moveResult.captured);
-          } else {
-            game.capturedWhitePieces.push(moveResult.captured);
+      try {
+        const moveResult = game.chess.move(move);
+        if (moveResult) {
+          if (moveResult.captured) {
+            if (moveResult.color === 'w') {
+              game.capturedBlackPieces.push(moveResult.captured);
+            } else {
+              game.capturedWhitePieces.push(moveResult.captured);
+            }
           }
+
+          // Check for game over conditions
+          if (game.chess.isCheckmate()) {
+            console.log('checkmate');
+            game.winner = player.color; // The player who made the move is the winner
+            game.gameOver = true;
+            return {
+              valid: false,
+              error: `Player ${player.color} won`,
+              errorType: 'GAME_OVER',
+            };
+          } else if (game.chess.isStalemate() || game.chess.isDraw()) {
+            console.log('draw');
+            game.winner = null; // No winner, it's a draw
+            game.gameOver = true;
+            return {
+              valid: false,
+              error: `Game draw`,
+              errorType: 'GAME_DRAW',
+            };
+          }
+
+          return { valid: true, game };
         }
-        return { valid: true, game };
+      } catch (e) {
+        return {
+          valid: false,
+          error: 'Not a valid move',
+          errorType: 'INVALID_MOVE',
+        };
       }
-      return {
-        valid: false,
-        error: 'Not a valid move',
-        errorType: 'INVALID_MOVE',
-      };
     }
     return {
       valid: false,

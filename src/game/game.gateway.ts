@@ -102,9 +102,17 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         capturedBlackPieces: game.capturedBlackPieces,
       });
     } else {
+      if (errorType == 'GAME_DRAW') {
+        this.server.to(gameId).emit('error', {
+          event: 'makeMove',
+          errorMessage: error,
+          errorType,
+        });
+        return;
+      }
       client.emit('error', {
         event: 'makeMove',
-        errorMessage: `Invalid Move - ${error}`,
+        errorMessage: error,
         errorType,
       });
     }
