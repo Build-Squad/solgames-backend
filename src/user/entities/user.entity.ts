@@ -1,7 +1,16 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import { Game } from 'src/games/entities/game.entity';
+import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
 
 @Entity()
 export class User {
+  // Relations
+  @OneToMany(() => Game, (game) => game.creator)
+  createdGames: Game[];
+
+  @OneToMany(() => Game, (game) => game.acceptor)
+  acceptedGames: Game[];
+
+  // Table columns
   @PrimaryGeneratedColumn()
   id: number;
 
