@@ -6,11 +6,13 @@ import {
   UpdateDateColumn,
   ManyToOne,
   JoinColumn,
+  BeforeInsert,
+  BeforeUpdate,
 } from 'typeorm';
 import { User } from '../../user/entities/user.entity';
 
 @Entity()
-export class Game {
+export class Games {
   // Relations
   @ManyToOne(() => User, (user) => user.createdGames, { nullable: true })
   @JoinColumn({ name: 'creatorId' })
@@ -21,10 +23,10 @@ export class Game {
   acceptor: User;
 
   //   Table columns
-  @PrimaryGeneratedColumn()
+  @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
+  @Column({ default: 'SOL' })
   token: string;
 
   @Column('decimal', { precision: 18, scale: 8 })
@@ -44,4 +46,15 @@ export class Game {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @BeforeInsert()
+  updateDatesBeforeInsert() {
+    this.createdAt = new Date();
+    this.updatedAt = new Date();
+  }
+
+  @BeforeUpdate()
+  updateDatesBeforeUpdate() {
+    this.updatedAt = new Date();
+  }
 }

@@ -7,7 +7,7 @@ import { UserModule } from './user/user.module';
 import configuration from './config/configuration';
 import { GamesModule } from './games/games.module';
 import { User } from './user/entities/user.entity';
-import { Game } from './games/entities/game.entity';
+import { Games } from './games/entities/game.entity';
 
 const { db_host, db_name, db_password, db_username } =
   configuration.databaseConfig;
@@ -20,7 +20,7 @@ const { db_host, db_name, db_password, db_username } =
       port: 5432,
       password: db_password,
       username: db_username,
-      entities: [User, Game],
+      entities: [User, Games],
       database: db_name,
       synchronize: true,
       logging: true,

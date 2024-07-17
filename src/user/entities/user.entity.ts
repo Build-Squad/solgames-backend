@@ -1,17 +1,17 @@
-import { Game } from 'src/games/entities/game.entity';
+import { Games } from 'src/games/entities/game.entity';
 import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
 
 @Entity()
 export class User {
   // Relations
-  @OneToMany(() => Game, (game) => game.creator)
-  createdGames: Game[];
+  @OneToMany(() => Games, (game) => game.creator)
+  createdGames: Games[];
 
-  @OneToMany(() => Game, (game) => game.acceptor)
-  acceptedGames: Game[];
+  @OneToMany(() => Games, (game) => game.acceptor)
+  acceptedGames: Games[];
 
   // Table columns
-  @PrimaryGeneratedColumn()
+  @PrimaryGeneratedColumn('uuid')
   id: number;
 
   @Column({ unique: true, nullable: true })
