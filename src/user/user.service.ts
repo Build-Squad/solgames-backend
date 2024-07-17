@@ -23,7 +23,7 @@ export class UserService {
       return {
         success: true,
         message: 'User logged in successfully!',
-        data: null,
+        data: existingUser,
       };
     }
 

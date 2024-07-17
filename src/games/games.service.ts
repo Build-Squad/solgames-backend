@@ -17,7 +17,7 @@ export class GamesService {
 
     return {
       success: true,
-      message: 'User created successfully!',
+      message: 'Game created successfully!',
       data: savedGame,
     };
   }

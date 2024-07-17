@@ -16,6 +16,7 @@ export class CreateGameDto {
   acceptorId?: string;
 
   @IsString()
+  @IsOptional()
   token: string;
 
   @IsNumber({ maxDecimalPlaces: 8 })
