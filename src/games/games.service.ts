@@ -22,6 +22,24 @@ export class GamesService {
     };
   }
 
+  async getGamesByUserId(userId: string) {
+    try {
+      if (!userId) {
+        throw new Error('UserId cannot be null or empty.');
+      }
+      const userGames = await this.gameRepository.find({
+        where: { creatorId: userId },
+      });
+      return userGames ?? [];
+    } catch (e) {
+      return {
+        success: false,
+        data: null,
+        message: e.message,
+      };
+    }
+  }
+
   findAll(): Promise<Games[]> {
     return this.gameRepository.find();
   }

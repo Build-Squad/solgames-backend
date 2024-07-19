@@ -20,6 +20,11 @@ export class GamesController {
     return this.gamesService.create(createGameDto);
   }
 
+  @Post('my-games')
+  async getMyGames(@Body('userId') userId: string) {
+    return this.gamesService.getGamesByUserId(userId);
+  }
+
   @Get()
   findAll() {
     return this.gamesService.findAll();

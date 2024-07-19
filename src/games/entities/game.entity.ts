@@ -26,6 +26,12 @@ export class Games {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @Column({ nullable: true })
+  creatorId: string;
+
+  @Column({ nullable: true })
+  acceptorId: string;
+
   @Column({ default: 'SOL' })
   token: string;
 
