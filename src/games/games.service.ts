@@ -40,6 +40,21 @@ export class GamesService {
     }
   }
 
+  async findOneByCode(inviteCode: string) {
+    const game = await this.gameRepository.findOne({ where: { inviteCode } });
+    return game
+      ? {
+          success: true,
+          data: game,
+          message: 'Game details fetched successfully!',
+        }
+      : {
+          success: false,
+          data: null,
+          message: 'Could not find the game with given invite code!',
+        };
+  }
+
   findAll(): Promise<Games[]> {
     return this.gameRepository.find();
   }

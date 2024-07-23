@@ -30,6 +30,11 @@ export class GamesController {
     return this.gamesService.findAll();
   }
 
+  @Get('by-code/:inviteCode')
+  findOneByCode(@Param('inviteCode') inviteCode: string) {
+    return this.gamesService.findOneByCode(inviteCode);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.gamesService.findOne(+id);

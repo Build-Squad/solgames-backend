@@ -50,7 +50,7 @@ export class Games {
   @Column('decimal', { precision: 18, scale: 8 })
   betAmount: number;
 
-  @Column()
+  @Column({ unique: true })
   inviteCode: string;
 
   @Column('timestamp')
