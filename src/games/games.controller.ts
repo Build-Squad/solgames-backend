@@ -25,6 +25,14 @@ export class GamesController {
     return this.gamesService.getGamesByUserId(userId);
   }
 
+  @Post('accept-game')
+  async acceptGame(
+    @Body('acceptorId') acceptorId: string,
+    @Body('joiningCode') joiningCode: string,
+  ) {
+    return this.gamesService.acceptGame(acceptorId, joiningCode);
+  }
+
   @Get()
   findAll() {
     return this.gamesService.findAll();

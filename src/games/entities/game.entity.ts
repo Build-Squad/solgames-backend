@@ -11,7 +11,7 @@ import {
 } from 'typeorm';
 import { User } from '../../user/entities/user.entity';
 
-enum GameStatus {
+export enum GameStatus {
   Scheduled = 'Scheduled', //When a user creates a game.
   Accepted = 'Accepted', //When the opponent accepts the game.
   InProgress = 'InProgress', //When both players have joined and the game is started.

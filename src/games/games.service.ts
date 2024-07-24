@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { CreateGameDto } from './dto/create-game.dto';
 import { UpdateGameDto } from './dto/update-game.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Games } from './entities/game.entity';
+import { Games, GameStatus } from './entities/game.entity';
 import { Repository } from 'typeorm';
 
 @Injectable()
@@ -38,6 +38,49 @@ export class GamesService {
         message: e.message,
       };
     }
+  }
+
+  async acceptGame(acceptorId: string, joiningCode: string) {
+    const game = await this.gameRepository.findOne({
+      where: { inviteCode: joiningCode },
+    });
+
+    if (!game) {
+      return {
+        message: 'Game not found',
+        success: false,
+        data: null,
+      };
+    }
+
+    // Check if the game has already been accepted or is not in 'Scheduled' status
+    if (game.isGameAccepted || game.gameStatus !== GameStatus.Scheduled) {
+      return {
+        message: 'Game is already accepted or is already completed',
+        success: false,
+        data: null,
+      };
+    }
+
+    // Check if the game has already been accepted or is not in 'Scheduled' status
+    if (game.creatorId == acceptorId) {
+      return {
+        message: 'You cannot accept your own game',
+        success: false,
+        data: null,
+      };
+    }
+
+    game.acceptorId = acceptorId;
+    game.isGameAccepted = true;
+    game.gameStatus = GameStatus.Accepted;
+    this.gameRepository.save(game);
+
+    return {
+      success: true,
+      data: game,
+      message: 'Game accepted!',
+    };
   }
 
   async findOneByCode(inviteCode: string) {
