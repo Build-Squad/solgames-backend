@@ -14,7 +14,7 @@ interface Game {
   gameOver?: boolean;
 }
 @Injectable()
-export class GameService {
+export class SocketService {
   private games: Map<string, Game> = new Map();
 
   createGame(

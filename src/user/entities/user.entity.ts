@@ -1,8 +1,17 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import { Games } from 'src/games/entities/game.entity';
+import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
 
 @Entity()
 export class User {
-  @PrimaryGeneratedColumn()
+  // Relations
+  @OneToMany(() => Games, (game) => game.creator)
+  createdGames: Games[];
+
+  @OneToMany(() => Games, (game) => game.acceptor)
+  acceptedGames: Games[];
+
+  // Table columns
+  @PrimaryGeneratedColumn('uuid')
   id: number;
 
   @Column({ unique: true, nullable: true })

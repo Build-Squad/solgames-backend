@@ -6,17 +6,17 @@ import {
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { GameService } from './game.service';
+import { SocketService } from './socket.service';
 
 @WebSocketGateway({
   cors: {
     origin: '*',
   },
 })
-export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer() server: Server;
 
-  constructor(private readonly gameService: GameService) {}
+  constructor(private readonly gameService: SocketService) {}
 
   handleConnection(client: Socket) {
     console.log(`Client connected: ${client.id}`);

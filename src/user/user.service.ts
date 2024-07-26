@@ -12,9 +12,29 @@ export class UserService {
     private userRepository: Repository<User>,
   ) {}
 
-  create(createUserDto: CreateUserDto): Promise<User> {
+  async create(createUserDto: CreateUserDto): Promise<any> {
+    const existingUser = await this.userRepository.findOne({
+      where: {
+        publicKey: createUserDto.publicKey,
+      },
+    });
+
+    if (existingUser) {
+      return {
+        success: true,
+        message: 'User logged in successfully!',
+        data: existingUser,
+      };
+    }
+
     const user = this.userRepository.create(createUserDto);
-    return this.userRepository.save(user);
+    const savedUser = await this.userRepository.save(user);
+
+    return {
+      success: true,
+      message: 'User created successfully!',
+      data: savedUser,
+    };
   }
 
   findAll(): Promise<User[]> {
