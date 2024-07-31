@@ -27,9 +27,11 @@ export class GamesService {
       if (!userId) {
         throw new Error('UserId cannot be null or empty.');
       }
+
       const userGames = await this.gameRepository.find({
-        where: { creatorId: userId },
+        where: [{ creatorId: userId }, { acceptorId: userId }],
       });
+
       return userGames ?? [];
     } catch (e) {
       return {
@@ -62,7 +64,6 @@ export class GamesService {
       };
     }
 
-    // Check if the game has already been accepted or is not in 'Scheduled' status
     if (game.creatorId == acceptorId) {
       return {
         message: 'You cannot accept your own game',
