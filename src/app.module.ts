@@ -8,6 +8,8 @@ import configuration from './config/configuration';
 import { GamesModule } from './games/games.module';
 import { User } from './user/entities/user.entity';
 import { Games } from './games/entities/game.entity';
+import { ScheduleModule } from '@nestjs/schedule';
+import { BullModule } from '@nestjs/bull';
 
 const { db_host, db_name, db_password, db_username } =
   configuration.databaseConfig;
@@ -24,6 +26,13 @@ const { db_host, db_name, db_password, db_username } =
       database: db_name,
       synchronize: true,
       logging: true,
+    }),
+    ScheduleModule.forRoot(),
+    BullModule.forRoot({
+      redis: {
+        host: 'localhost',
+        port: 6379,
+      },
     }),
     SocketModule,
     UserModule,

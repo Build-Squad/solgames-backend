@@ -1,19 +1,32 @@
 import { Injectable } from '@nestjs/common';
+import { Repository } from 'typeorm';
+import { InjectQueue } from '@nestjs/bull';
+import { Queue } from 'bull';
 import { CreateGameDto } from './dto/create-game.dto';
 import { UpdateGameDto } from './dto/update-game.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Games, GameStatus } from './entities/game.entity';
-import { Repository } from 'typeorm';
 
 @Injectable()
 export class GamesService {
   constructor(
     @InjectRepository(Games) private gameRepository: Repository<Games>,
+    @InjectQueue('games') private readonly gamesQueue: Queue,
   ) {}
 
   async create(createGameDto: CreateGameDto) {
     const game = this.gameRepository.create(createGameDto);
     const savedGame = await this.gameRepository.save(game);
+
+    const delay =
+      new Date(savedGame.gameDateTime).getTime() - new Date().getTime();
+
+    // Add job to the queue
+    await this.gamesQueue.add(
+      'scheduleGame',
+      { gameId: savedGame.id },
+      { delay: delay },
+    );
 
     return {
       success: true,
@@ -84,6 +97,15 @@ export class GamesService {
     };
   }
 
+  async findOne(id: string): Promise<Games> {
+    return this.gameRepository.findOne({ where: { id } });
+  }
+
+  async updateGameStatus(game: Games, status: GameStatus) {
+    game.gameStatus = status;
+    await this.gameRepository.save(game);
+  }
+
   async findOneByCode(inviteCode: string) {
     const game = await this.gameRepository.findOne({ where: { inviteCode } });
     return game
@@ -103,7 +125,7 @@ export class GamesService {
     return this.gameRepository.find();
   }
 
-  findOne(id: number) {
+  findOneById(id: number) {
     return `This action returns a #${id} game`;
   }
 
