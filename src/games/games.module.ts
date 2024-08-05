@@ -5,10 +5,11 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Games } from './entities/game.entity';
 import { BullModule } from '@nestjs/bull';
 import { GamesQueue } from './games.queue';
+import { ScheduleGameJobs } from './entities/scheduleGame.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Games]),
+    TypeOrmModule.forFeature([Games, ScheduleGameJobs]),
     BullModule.registerQueue({
       name: 'games',
     }),

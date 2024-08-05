@@ -6,11 +6,14 @@ import { CreateGameDto } from './dto/create-game.dto';
 import { UpdateGameDto } from './dto/update-game.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Games, GameStatus } from './entities/game.entity';
+import { ScheduleGameJobs } from './entities/scheduleGame.entity';
 
 @Injectable()
 export class GamesService {
   constructor(
     @InjectRepository(Games) private gameRepository: Repository<Games>,
+    @InjectRepository(ScheduleGameJobs)
+    private scheduledJobRepository: Repository<ScheduleGameJobs>,
     @InjectQueue('games') private readonly gamesQueue: Queue,
   ) {}
 
@@ -21,12 +24,22 @@ export class GamesService {
     const delay =
       new Date(savedGame.gameDateTime).getTime() - new Date().getTime();
 
+    // Store job entry in the database
+    const scheduledJob = new ScheduleGameJobs();
+    scheduledJob.gameId = savedGame.id;
+    scheduledJob.status = 'Scheduled';
+    scheduledJob.scheduledTime = new Date();
+
     // Add job to the queue
-    await this.gamesQueue.add(
+    const job = await this.gamesQueue.add(
       'scheduleGame',
       { gameId: savedGame.id },
       { delay: delay },
     );
+
+    // Update the job ID in the database
+    scheduledJob.jobId = job.id.toString();
+    await this.scheduledJobRepository.save(scheduledJob);
 
     return {
       success: true,

@@ -10,6 +10,7 @@ import { User } from './user/entities/user.entity';
 import { Games } from './games/entities/game.entity';
 import { ScheduleModule } from '@nestjs/schedule';
 import { BullModule } from '@nestjs/bull';
+import { ScheduleGameJobs } from './games/entities/scheduleGame.entity';
 
 const { db_host, db_name, db_password, db_username } =
   configuration.databaseConfig;
@@ -22,7 +23,7 @@ const { db_host, db_name, db_password, db_username } =
       port: 5432,
       password: db_password,
       username: db_username,
-      entities: [User, Games],
+      entities: [User, Games, ScheduleGameJobs],
       database: db_name,
       synchronize: true,
       logging: true,
