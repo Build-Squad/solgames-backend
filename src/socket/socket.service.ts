@@ -1,5 +1,8 @@
 import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
 import { Chess } from 'chess.js';
+import { Games } from 'src/games/entities/game.entity';
+import { Repository } from 'typeorm';
 
 interface Game {
   id: string;
@@ -16,62 +19,83 @@ interface Game {
 @Injectable()
 export class SocketService {
   private games: Map<string, Game> = new Map();
+  constructor(
+    @InjectRepository(Games) private gameRepository: Repository<Games>,
+  ) {}
 
-  createGame(
-    gameId: string,
-    clientId: string,
-  ): { game?: Game; error?: string; errorType?: string } {
-    if (this.games.has(gameId)) {
-      return {
-        game: undefined,
-        error: 'Game with given code is already created. Please try again.',
-        errorType: 'GAME_EXISTS',
-      };
-    }
-
+  createGame(gameCode: string, userId: string) {
     const chess = new Chess();
     const game: Game = {
-      id: gameId,
+      id: gameCode,
       chess,
-      players: [{ id: clientId, color: 'w' }],
+      players: [{ id: userId, color: 'w' }],
       capturedWhitePieces: [],
       capturedBlackPieces: [],
     };
 
-    this.games.set(gameId, game);
+    this.games.set(gameCode, game);
     return { game };
   }
 
-  getGame(gameId: string): Game | undefined {
-    return this.games.get(gameId);
-  }
-
-  addPlayerToGame(
-    gameId: string,
-    clientId: string,
-  ): { game?: Game; error?: string; errorType?: string } {
-    const game = this.games.get(gameId);
+  async addPlayerToGame(gameCode: string, userId: string) {
     let error = '';
     let errorType = '';
 
-    // Handle connect
-    if (game && game.players.length < 2) {
-      const color = game.players[0].color === 'w' ? 'b' : 'w';
-      game.players.push({ id: clientId, color });
+    // Game from database based on invite code
+    const inviteGameDetails = await this.gameRepository.findOne({
+      where: { inviteCode: gameCode },
+    });
+
+    // Check if the game exists and if the user is authorized to join
+    if (!inviteGameDetails) {
+      error = 'Game not found, please enter a valid invite code!';
+      errorType = 'GAME_NOT_FOUND';
+      return { game: undefined, error, errorType };
+    }
+
+    if (
+      !(
+        inviteGameDetails.acceptorId === userId ||
+        inviteGameDetails.creatorId === userId
+      )
+    ) {
+      error = 'You are not authorized to join this game.';
+      errorType = 'USER_NOT_VALID';
+      return { game: undefined, error, errorType };
+    }
+
+    // Create the game if it does not exist
+    if (!this.games.has(gameCode)) {
+      this.createGame(gameCode, userId);
+      const game = this.games.get(gameCode);
       return { game };
     }
 
-    // Handle errors
-    if (game?.players?.length >= 2) {
-      error = 'Lobby is full!';
-      errorType = 'LOBBY_FULL';
-    }
-    if (!game) {
-      error = 'Game not found, please enter a valid invite code!';
+    // Logic for join game by other player.
+    const game = this.games.get(gameCode);
+
+    if (game) {
+      // Check if the user is already in the game
+      if (game.players.some((player) => player.id === userId)) {
+        error = 'You are already in this game.';
+        errorType = 'USER_ALREADY_IN_GAME';
+        return { game, error, errorType };
+      }
+
+      // Letting other player join
+      const color = game.players[0].color === 'w' ? 'b' : 'w';
+      game.players.push({ id: userId, color });
+      return { game };
+    } else {
+      error = 'Game not found in the internal game store!';
       errorType = 'GAME_NOT_FOUND';
     }
 
     return { game: undefined, error, errorType };
+  }
+
+  getGame(gameId: string): Game | undefined {
+    return this.games.get(gameId);
   }
 
   removePlayerFromGameByPlayerId(playerId: string): Game | undefined {

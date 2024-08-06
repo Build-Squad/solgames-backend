@@ -35,7 +35,7 @@ export class GamesQueue {
     }
 
     // Check if the game is accepted and not yet started
-    if (game.isGameAccepted && game.acceptorId) {
+    if (game.isGameAccepted) {
       // Update game status to InProgress
       await this.gamesService.updateGameStatus(game, GameStatus.InProgress);
       scheduledJob.status = GameStatus.InProgress;

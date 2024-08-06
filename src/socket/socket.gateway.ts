@@ -34,37 +34,16 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
-  @SubscribeMessage('createGame')
-  handleCreateGame(client: Socket, gameCode: string) {
-    const { game, error, errorType } = this.gameService.createGame(
-      gameCode,
-      client.id,
-    );
-    if (game) {
-      // Creating a room when a new game is created with game code
-      client.join(gameCode);
-      client.emit('gameCreated', {
-        id: game.id,
-        chess: game.chess.fen(),
-        players: game.players,
-        capturedWhitePieces: game.capturedWhitePieces,
-        capturedBlackPieces: game.capturedBlackPieces,
-      });
-    } else {
-      client.emit('error', {
-        event: 'createGame',
-        errorMessage: error,
-        errorType,
-      });
-    }
-  }
-
   @SubscribeMessage('joinGame')
-  handleJoinGame(client: Socket, gameCode: string) {
-    const { game, error, errorType } = this.gameService.addPlayerToGame(
+  async handleJoinGame(
+    client: Socket,
+    { userId, gameCode }: { userId: string; gameCode: string },
+  ) {
+    const { game, error, errorType } = await this.gameService.addPlayerToGame(
       gameCode,
-      client.id,
+      userId,
     );
+
     if (game) {
       client.join(gameCode);
       this.server.to(gameCode).emit('playerJoined', {
@@ -86,11 +65,15 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('makeMove')
   handleMakeMove(
     client: Socket,
-    { gameId, move }: { gameId: string; move: { from: string; to: string } },
+    {
+      gameId,
+      move,
+      userId,
+    }: { gameId: string; move: { from: string; to: string }; userId: string },
   ) {
     const { valid, game, error, errorType } = this.gameService.makeMove(
       gameId,
-      client.id,
+      userId,
       move,
     );
     if (valid && game) {
