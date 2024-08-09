@@ -119,11 +119,11 @@ export class SocketService {
     this.games.delete(gameId);
   }
 
-  makeMove(
+  async makeMove(
     gameId: string,
     playerId: string,
     move: { from: string; to: string },
-  ): { valid: boolean; game?: Game; error?: string; errorType?: string } {
+  ) {
     const game = this.games.get(gameId);
     if (game) {
       const player = game.players.find((player) => player.id === playerId);
@@ -146,9 +146,22 @@ export class SocketService {
             }
           }
 
+          let gameDetails;
+          if (
+            game.chess.isCheckmate() ||
+            game.chess.isStalemate() ||
+            game.chess.isDraw()
+          ) {
+            gameDetails = await this.gameRepository.findOne({
+              where: { inviteCode: gameId },
+            });
+          }
+
           // Check for game over conditions
           if (game.chess.isCheckmate()) {
             console.log('checkmate');
+            gameDetails.gameStatus = 'Completed';
+            gameDetails.winnerId = player.id;
             game.winner = player.color; // The player who made the move is the winner
             game.gameOver = true;
             return {
@@ -157,7 +170,8 @@ export class SocketService {
               errorType: 'GAME_OVER',
             };
           } else if (game.chess.isStalemate() || game.chess.isDraw()) {
-            console.log('draw');
+            console.log('draw | stalemate');
+            gameDetails.gameStatus = 'Draw';
             game.winner = null; // No winner, it's a draw
             game.gameOver = true;
             return {
@@ -165,6 +179,10 @@ export class SocketService {
               error: `Game draw`,
               errorType: 'GAME_DRAW',
             };
+          }
+
+          if (gameDetails) {
+            await this.gameRepository.save(gameDetails);
           }
 
           return { valid: true, game };

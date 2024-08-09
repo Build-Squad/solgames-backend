@@ -63,7 +63,7 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('makeMove')
-  handleMakeMove(
+  async handleMakeMove(
     client: Socket,
     {
       gameId,
@@ -71,7 +71,7 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
       userId,
     }: { gameId: string; move: { from: string; to: string }; userId: string },
   ) {
-    const { valid, game, error, errorType } = this.gameService.makeMove(
+    const { valid, game, error, errorType } = await this.gameService.makeMove(
       gameId,
       userId,
       move,
