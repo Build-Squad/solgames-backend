@@ -146,6 +146,7 @@ export class SocketService {
             }
           }
 
+          // The game details will only be fetched when the game is ended.
           let gameDetails;
           if (
             game.chess.isCheckmate() ||
@@ -159,30 +160,26 @@ export class SocketService {
 
           // Check for game over conditions
           if (game.chess.isCheckmate()) {
-            console.log('checkmate');
             gameDetails.gameStatus = 'Completed';
             gameDetails.winnerId = player.id;
             game.winner = player.color; // The player who made the move is the winner
             game.gameOver = true;
+            await this.gameRepository.save(gameDetails);
             return {
               valid: false,
               error: `Player ${player.color} won`,
               errorType: 'GAME_OVER',
             };
           } else if (game.chess.isStalemate() || game.chess.isDraw()) {
-            console.log('draw | stalemate');
             gameDetails.gameStatus = 'Draw';
             game.winner = null; // No winner, it's a draw
             game.gameOver = true;
+            await this.gameRepository.save(gameDetails);
             return {
               valid: false,
               error: `Game draw`,
               errorType: 'GAME_DRAW',
             };
-          }
-
-          if (gameDetails) {
-            await this.gameRepository.save(gameDetails);
           }
 
           return { valid: true, game };

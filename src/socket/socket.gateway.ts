@@ -85,19 +85,20 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
         capturedBlackPieces: game.capturedBlackPieces,
       });
     } else {
-      if (errorType == 'GAME_DRAW') {
+      if (errorType == 'GAME_DRAW' || errorType == 'GAME_OVER') {
         this.server.to(gameId).emit('error', {
           event: 'makeMove',
           errorMessage: error,
           errorType,
         });
         return;
+      } else {
+        client.emit('error', {
+          event: 'makeMove',
+          errorMessage: error,
+          errorType,
+        });
       }
-      client.emit('error', {
-        event: 'makeMove',
-        errorMessage: error,
-        errorType,
-      });
     }
   }
 }
