@@ -119,21 +119,28 @@ export class SocketService {
     this.games.delete(gameId);
   }
 
-  async inactivePlayer(gameId: string, playerId: string) {
+  async inactivePlayer(gameId: string) {
     const gameDetails = await this.gameRepository.findOne({
       where: { inviteCode: gameId },
     });
     const game = this.games.get(gameId);
-    const player = game.players.find((player) => player.id != playerId);
+    const loser = game.players.find(
+      (player) => player.color == game.chess.turn(),
+    );
+
+    const winner = game.players.find(
+      (player) => player.color != game.chess.turn(),
+    );
 
     gameDetails.gameStatus = GameStatus.Completed;
-    gameDetails.winnerId = player.id;
-    game.winner = player.color; // The player who made the move is the winner
+    gameDetails.winnerId = winner.id;
+    game.winner = winner.color;
     game.gameOver = true;
     await this.gameRepository.save(gameDetails);
     return {
       error: 'inactiveUser',
       errorType: 'INACTIVE_USER',
+      currentPlayer: loser.color,
     };
   }
 

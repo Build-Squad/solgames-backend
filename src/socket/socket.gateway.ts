@@ -65,20 +65,16 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('inactiveUser')
   async handlePlayerInactivity(
     client: Socket,
-    {
-      gameId,
-      userId,
-      inactivityType,
-    }: { gameId: string; userId: string; inactivityType: string },
+    { gameId }: { gameId: string; userId: string; inactivityType: string },
   ) {
-    const { error, errorType } = await this.gameService.inactivePlayer(
-      gameId,
-      userId,
-    );
+    const { error, errorType, currentPlayer } =
+      await this.gameService.inactivePlayer(gameId);
+
     this.server.to(gameId).emit('error', {
       event: 'inactivePlayer',
       errorMessage: error,
       errorType,
+      currentPlayer,
     });
     return;
   }
