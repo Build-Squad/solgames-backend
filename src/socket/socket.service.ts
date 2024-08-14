@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Chess } from 'chess.js';
-import { Games } from 'src/games/entities/game.entity';
+import { Games, GameStatus } from 'src/games/entities/game.entity';
 import { Repository } from 'typeorm';
 
 interface Game {
@@ -119,6 +119,24 @@ export class SocketService {
     this.games.delete(gameId);
   }
 
+  async inactivePlayer(gameId: string, playerId: string) {
+    const gameDetails = await this.gameRepository.findOne({
+      where: { inviteCode: gameId },
+    });
+    const game = this.games.get(gameId);
+    const player = game.players.find((player) => player.id != playerId);
+
+    gameDetails.gameStatus = GameStatus.Completed;
+    gameDetails.winnerId = player.id;
+    game.winner = player.color; // The player who made the move is the winner
+    game.gameOver = true;
+    await this.gameRepository.save(gameDetails);
+    return {
+      error: 'inactiveUser',
+      errorType: 'INACTIVE_USER',
+    };
+  }
+
   async makeMove(
     gameId: string,
     playerId: string,
@@ -160,7 +178,7 @@ export class SocketService {
 
           // Check for game over conditions
           if (game.chess.isCheckmate()) {
-            gameDetails.gameStatus = 'Completed';
+            gameDetails.gameStatus = GameStatus.Completed;
             gameDetails.winnerId = player.id;
             game.winner = player.color; // The player who made the move is the winner
             game.gameOver = true;
@@ -171,7 +189,7 @@ export class SocketService {
               errorType: 'GAME_OVER',
             };
           } else if (game.chess.isStalemate() || game.chess.isDraw()) {
-            gameDetails.gameStatus = 'Draw';
+            gameDetails.gameStatus = GameStatus.Draw;
             game.winner = null; // No winner, it's a draw
             game.gameOver = true;
             await this.gameRepository.save(gameDetails);
