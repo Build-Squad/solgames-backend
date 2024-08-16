@@ -4,7 +4,7 @@ import { Chess } from 'chess.js';
 import { Games, GameStatus } from 'src/games/entities/game.entity';
 import { Repository } from 'typeorm';
 
-interface Game {
+interface WebSocketGameStruct {
   id: string;
   chess: Chess;
   players: {
@@ -18,14 +18,14 @@ interface Game {
 }
 @Injectable()
 export class SocketService {
-  private games: Map<string, Game> = new Map();
+  private games: Map<string, WebSocketGameStruct> = new Map();
   constructor(
     @InjectRepository(Games) private gameRepository: Repository<Games>,
   ) {}
 
   createGame(gameCode: string, userId: string) {
     const chess = new Chess();
-    const game: Game = {
+    const game: WebSocketGameStruct = {
       id: gameCode,
       chess,
       players: [{ id: userId, color: 'w' }],
@@ -94,12 +94,14 @@ export class SocketService {
     return { game: undefined, error, errorType };
   }
 
-  getGame(gameId: string): Game | undefined {
+  getGame(gameId: string): WebSocketGameStruct | undefined {
     return this.games.get(gameId);
   }
 
-  removePlayerFromGameByPlayerId(playerId: string): Game | undefined {
-    let removedGame: Game | undefined;
+  removePlayerFromGameByPlayerId(
+    playerId: string,
+  ): WebSocketGameStruct | undefined {
+    let removedGame: WebSocketGameStruct | undefined;
     this.games.forEach((game) => {
       const playerIndex = game.players.findIndex(
         (player) => player.id === playerId,

@@ -120,7 +120,11 @@ export class GamesService {
   }
 
   async findOneByCode(inviteCode: string) {
-    const game = await this.gameRepository.findOne({ where: { inviteCode } });
+    const game = await this.gameRepository.findOne({
+      where: { inviteCode },
+      relations: ['creator', 'acceptor'], // Load related entities
+    });
+
     return game
       ? {
           success: true,
@@ -130,7 +134,7 @@ export class GamesService {
       : {
           success: false,
           data: null,
-          message: 'Could not find the game with given invite code!',
+          message: 'Could not find the game with the given invite code!',
         };
   }
 
