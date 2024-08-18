@@ -35,10 +35,10 @@ export class User {
   @Column({ nullable: true })
   aggregateVerifier: string;
 
-  @Column({ default: false })
+  @Column({ nullable: true, default: false })
   isMfaEnabled: boolean;
 
-  @Column('text')
+  @Column({ nullable: true })
   idToken: string;
 
   @Column({ unique: true })
