@@ -24,6 +24,8 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   handleDisconnect(client: Socket) {
     console.log(`Client disconnected: ${client.id}`);
+
+    // This is not happening now
     const game = this.gameService.removePlayerFromGameByPlayerId(client.id);
     if (game) {
       this.server.to(game.id).emit('playerDisconnected', {

@@ -120,6 +120,11 @@ export class GamesService {
     await this.gameRepository.save(game);
   }
 
+  async declareGameWinner(game: Games, winnerId: string) {
+    game.winnerId = winnerId;
+    await this.gameRepository.save(game);
+  }
+
   async findOneByCode(inviteCode: string) {
     const game = await this.gameRepository.findOne({
       where: { inviteCode },

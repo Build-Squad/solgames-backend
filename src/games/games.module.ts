@@ -6,6 +6,7 @@ import { Games } from './entities/game.entity';
 import { BullModule } from '@nestjs/bull';
 import { GamesQueue } from './games.queue';
 import { ScheduleGameJobs } from './entities/scheduleGame.entity';
+import { SocketModule } from 'src/socket/socket.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { ScheduleGameJobs } from './entities/scheduleGame.entity';
     BullModule.registerQueue({
       name: 'games',
     }),
+    SocketModule,
   ],
   providers: [GamesService, GamesQueue],
   controllers: [GamesController],
