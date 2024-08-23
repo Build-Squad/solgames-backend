@@ -11,6 +11,7 @@ import { Games } from './games/entities/game.entity';
 import { ScheduleModule } from '@nestjs/schedule';
 import { BullModule } from '@nestjs/bull';
 import { ScheduleGameJobs } from './games/entities/scheduleGame.entity';
+import { EscrowModule } from './escrow/escrow.module';
 
 const { db_host, db_name, db_password, db_username } =
   configuration.databaseConfig;
@@ -38,6 +39,7 @@ const { db_host, db_name, db_password, db_username } =
     SocketModule,
     UserModule,
     GamesModule,
+    EscrowModule,
   ],
   controllers: [AppController],
   providers: [AppService],
