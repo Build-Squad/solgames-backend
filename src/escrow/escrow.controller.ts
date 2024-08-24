@@ -10,6 +10,7 @@ import {
 import { EscrowService } from './escrow.service';
 import { CreateEscrowDto } from './dto/create-escrow.dto';
 import { UpdateEscrowDto } from './dto/update-escrow.dto';
+import { XcrowExecuteDto } from './dto/execute-escrow.dto';
 
 @Controller('escrow')
 export class EscrowController {
@@ -18,6 +19,11 @@ export class EscrowController {
   @Post('deposit')
   create(@Body() createEscrowDto: CreateEscrowDto) {
     return this.escrowService.createEscrow(createEscrowDto);
+  }
+
+  @Post('execute')
+  async executeXcrow(@Body() xcrowExecuteDto: XcrowExecuteDto) {
+    return await this.escrowService.executeXcrow(xcrowExecuteDto);
   }
 
   @Get()

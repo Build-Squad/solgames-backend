@@ -12,6 +12,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { BullModule } from '@nestjs/bull';
 import { ScheduleGameJobs } from './games/entities/scheduleGame.entity';
 import { EscrowModule } from './escrow/escrow.module';
+import { Escrow } from './escrow/entities/escrow.entity';
 
 const { db_host, db_name, db_password, db_username } =
   configuration.databaseConfig;
@@ -24,7 +25,7 @@ const { db_host, db_name, db_password, db_username } =
       port: 5432,
       password: db_password,
       username: db_username,
-      entities: [User, Games, ScheduleGameJobs],
+      entities: [User, Games, ScheduleGameJobs, Escrow],
       database: db_name,
       synchronize: true,
       logging: true,

@@ -3,6 +3,10 @@ import { Injectable } from '@nestjs/common';
 import { CreateEscrowDto } from './dto/create-escrow.dto';
 import { UpdateEscrowDto } from './dto/update-escrow.dto';
 import configuration from 'src/config/configuration';
+import { Repository } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Escrow } from './entities/escrow.entity';
+import { XcrowExecuteDto } from './dto/execute-escrow.dto';
 
 const { apiKey, applicationId, network, environment } =
   configuration.escrowConfig;
@@ -10,6 +14,7 @@ const { apiKey, applicationId, network, environment } =
 @Injectable()
 export class EscrowService {
   private xcrow: Xcrow;
+  // @InjectRepository(Escrow) private escrowRepository: Repository<Escrow>;
 
   constructor() {
     this.xcrow = new Xcrow({
@@ -42,6 +47,27 @@ export class EscrowService {
         success: false,
         data: null,
         message: 'Error creating a escrow!',
+      };
+    }
+  }
+
+  async executeXcrow(xcrowExecuteDto: XcrowExecuteDto) {
+    const { vaultId, signedTransaction, transactionId } = xcrowExecuteDto;
+
+    try {
+      const result = await this.xcrow.execute({
+        vaultId,
+        signedTransaction,
+        transactionId,
+      });
+
+      return { data: result, success: true, message: 'Transaction saved!' };
+    } catch (err) {
+      console.error('Xcrow execute error:', err);
+      return {
+        data: null,
+        success: false,
+        message: 'Save transaction failed!',
       };
     }
   }

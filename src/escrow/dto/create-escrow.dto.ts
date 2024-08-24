@@ -7,6 +7,10 @@ export class CreateEscrowDto {
 
   @IsNotEmpty()
   @IsString()
+  inviteCode: string;
+
+  @IsNotEmpty()
+  @IsString()
   userId: string;
 
   @IsNotEmpty()
