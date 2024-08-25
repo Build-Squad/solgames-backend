@@ -7,6 +7,10 @@ import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Escrow } from './entities/escrow.entity';
 import { XcrowExecuteDto } from './dto/execute-escrow.dto';
+import {
+  ESCROW_TRANSACTION_STATUS,
+  EscrowTransaction,
+} from './entities/escrowTransaction.entity';
 
 const { apiKey, applicationId, network, environment } =
   configuration.escrowConfig;
@@ -14,7 +18,9 @@ const { apiKey, applicationId, network, environment } =
 @Injectable()
 export class EscrowService {
   private xcrow: Xcrow;
-  // @InjectRepository(Escrow) private escrowRepository: Repository<Escrow>;
+  @InjectRepository(Escrow) private escrowRepository: Repository<Escrow>;
+  @InjectRepository(EscrowTransaction)
+  private escrowTransactionRepository: Repository<EscrowTransaction>;
 
   constructor() {
     this.xcrow = new Xcrow({
@@ -25,17 +31,28 @@ export class EscrowService {
   }
 
   async createEscrow(createEscrowDto: CreateEscrowDto) {
+    const { publicKey, amount, inviteCode } = createEscrowDto;
     try {
       const depositOutput = await this.xcrow.deposit({
-        payer: createEscrowDto.publicKey,
+        payer: publicKey,
         strategy: 'blockhash',
         priorityFeeLevel: 'Low',
         token: {
           mintAddress: 'So11111111111111111111111111111111111111112',
-          amount: createEscrowDto.amount,
+          amount: amount,
         },
         network: network as 'mainnet' | 'devnet',
       });
+
+      // Create the escrow record in the database
+      const newEscrow = this.escrowRepository.create({
+        amount,
+        inviteCode: inviteCode,
+        vaultId: depositOutput?.vaultId,
+      });
+
+      await this.escrowRepository.save(newEscrow);
+
       return {
         success: true,
         data: depositOutput,
@@ -52,7 +69,14 @@ export class EscrowService {
   }
 
   async executeXcrow(xcrowExecuteDto: XcrowExecuteDto) {
-    const { vaultId, signedTransaction, transactionId } = xcrowExecuteDto;
+    const {
+      vaultId,
+      signedTransaction,
+      transactionId,
+      inviteCode,
+      userId,
+      userRole,
+    } = xcrowExecuteDto;
 
     try {
       const result = await this.xcrow.execute({
@@ -61,13 +85,29 @@ export class EscrowService {
         transactionId,
       });
 
+      const escrowAccount = await this.escrowRepository.findOne({
+        where: { inviteCode },
+      });
+
+      // Create the escrow transaction record in the database
+      const newEscrowTransaction = this.escrowTransactionRepository.create({
+        amount: escrowAccount.amount,
+        escrow: escrowAccount,
+        status: ESCROW_TRANSACTION_STATUS.Completed,
+        transactionHash: result?.txHash,
+        userId,
+        role: userRole,
+      });
+
+      await this.escrowTransactionRepository.save(newEscrowTransaction);
+
       return { data: result, success: true, message: 'Transaction saved!' };
     } catch (err) {
       console.error('Xcrow execute error:', err);
       return {
         data: null,
         success: false,
-        message: 'Save transaction failed!',
+        message: 'Save transaction failed! Please try again',
       };
     }
   }

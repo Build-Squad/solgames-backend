@@ -1,4 +1,5 @@
-import { IsString } from 'class-validator';
+import { IsEnum, IsString } from 'class-validator';
+import { USER_ROLE } from '../entities/escrowTransaction.entity';
 
 export class XcrowExecuteDto {
   @IsString()
@@ -9,4 +10,13 @@ export class XcrowExecuteDto {
 
   @IsString()
   transactionId: string;
+
+  @IsString()
+  inviteCode: string;
+
+  @IsString()
+  userId: string;
+
+  @IsEnum(USER_ROLE)
+  userRole: USER_ROLE;
 }
