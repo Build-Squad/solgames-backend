@@ -1,4 +1,10 @@
-import { IsNotEmpty, IsString, IsNumber, Min } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsString,
+  IsNumber,
+  Min,
+  IsOptional,
+} from 'class-validator';
 
 export class CreateEscrowDto {
   @IsNotEmpty()
@@ -9,8 +15,8 @@ export class CreateEscrowDto {
   @IsString()
   inviteCode: string;
 
-  @IsNotEmpty()
   @IsNumber()
   @Min(0)
+  @IsOptional()
   amount: number;
 }

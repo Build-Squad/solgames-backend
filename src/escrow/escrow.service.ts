@@ -30,7 +30,7 @@ export class EscrowService {
     });
   }
 
-  async createEscrow(createEscrowDto: CreateEscrowDto) {
+  async initializeCreateEscrow(createEscrowDto: CreateEscrowDto) {
     const { publicKey, amount, inviteCode } = createEscrowDto;
     try {
       const depositOutput = await this.xcrow.deposit({
@@ -63,7 +63,53 @@ export class EscrowService {
       return {
         success: false,
         data: null,
-        message: 'Error creating a escrow!',
+        message:
+          'Error creating an escrow transaction, please reload and try again!',
+      };
+    }
+  }
+
+  async initializeAcceptEscrow(createEscrowDto: CreateEscrowDto) {
+    const { publicKey, inviteCode } = createEscrowDto;
+
+    const escrow = await this.escrowRepository.findOne({
+      where: {
+        inviteCode,
+      },
+    });
+
+    if (escrow) {
+      try {
+        const depositOutput = await this.xcrow.deposit({
+          payer: publicKey,
+          strategy: 'blockhash',
+          priorityFeeLevel: 'Low',
+          token: {
+            mintAddress: 'So11111111111111111111111111111111111111112',
+            amount: Number(escrow.amount),
+          },
+          network: network as 'mainnet' | 'devnet',
+          vaultId: escrow?.vaultId,
+        });
+        return {
+          success: true,
+          data: depositOutput,
+          message: 'Successfully initiated fund transfer!',
+        };
+      } catch (error) {
+        console.error('Error creating an accept transaction:', error);
+        return {
+          success: false,
+          data: null,
+          message:
+            'Error creating an accept transaction, please reload and try again!',
+        };
+      }
+    } else {
+      return {
+        success: false,
+        data: null,
+        message: 'Escrow not found',
       };
     }
   }

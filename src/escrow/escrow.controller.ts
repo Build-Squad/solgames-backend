@@ -16,9 +16,13 @@ import { XcrowExecuteDto } from './dto/execute-escrow.dto';
 export class EscrowController {
   constructor(private readonly escrowService: EscrowService) {}
 
-  @Post('deposit')
-  create(@Body() createEscrowDto: CreateEscrowDto) {
-    return this.escrowService.createEscrow(createEscrowDto);
+  @Post('create-initialize')
+  initializeCreate(@Body() createEscrowDto: CreateEscrowDto) {
+    return this.escrowService.initializeCreateEscrow(createEscrowDto);
+  }
+  @Post('accept-initialize')
+  initializeAccept(@Body() createEscrowDto: CreateEscrowDto) {
+    return this.escrowService.initializeAcceptEscrow(createEscrowDto);
   }
 
   @Post('execute')
