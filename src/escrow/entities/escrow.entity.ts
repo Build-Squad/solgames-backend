@@ -21,6 +21,12 @@ export class Escrow {
   @Column({ nullable: true })
   vaultId: string;
 
+  @Column({ nullable: true })
+  transactionId: string;
+
+  @Column({ nullable: true })
+  transactionHash: string;
+
   @Column({ unique: true })
   inviteCode: string;
 

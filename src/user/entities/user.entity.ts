@@ -1,6 +1,10 @@
 import { Games } from 'src/games/entities/game.entity';
 import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
 
+export enum USER_ROLE {
+  Creator = 'Creator',
+  Acceptor = 'Acceptor',
+}
 @Entity()
 export class User {
   // Relations

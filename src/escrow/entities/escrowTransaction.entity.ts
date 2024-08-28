@@ -7,11 +7,8 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { Escrow } from './escrow.entity';
+import { USER_ROLE } from 'src/user/entities/user.entity';
 
-export enum USER_ROLE {
-  Creator = 'Creator',
-  Acceptor = 'Acceptor',
-}
 export enum ESCROW_TRANSACTION_STATUS {
   Pending = 'Pending',
   Completed = 'Completed',
@@ -34,6 +31,9 @@ export class EscrowTransaction {
 
   @Column()
   userId: string;
+
+  @Column({ nullable: true })
+  transactionId: string;
 
   @Column({ type: 'enum', enum: USER_ROLE })
   role: USER_ROLE;

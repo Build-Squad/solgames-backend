@@ -20,4 +20,8 @@ export default {
     network: process.env.ESCROW_NETWORK,
     environment: process.env.XCROW_ENVIRONMENT,
   },
+  platformConfig: {
+    platformPublicKey: process.env.PLATFORM_PUBLIC_KEY,
+    platformPrivateKey: process.env.PLATFORM_PRIVATE_KEY,
+  },
 };

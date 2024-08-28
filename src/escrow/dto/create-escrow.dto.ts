@@ -1,22 +1,15 @@
-import {
-  IsNotEmpty,
-  IsString,
-  IsNumber,
-  Min,
-  IsOptional,
-} from 'class-validator';
+import { IsNotEmpty, IsString, IsNumber, Min } from 'class-validator';
 
 export class CreateEscrowDto {
-  @IsNotEmpty()
-  @IsString()
-  publicKey: string;
-
   @IsNotEmpty()
   @IsString()
   inviteCode: string;
 
   @IsNumber()
   @Min(0)
-  @IsOptional()
   amount: number;
+
+  @IsNotEmpty()
+  @IsString()
+  publicKey: string;
 }

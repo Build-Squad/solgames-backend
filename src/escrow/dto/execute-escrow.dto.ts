@@ -1,5 +1,5 @@
 import { IsEnum, IsString } from 'class-validator';
-import { USER_ROLE } from '../entities/escrowTransaction.entity';
+import { USER_ROLE } from 'src/user/entities/user.entity';
 
 export class XcrowExecuteDto {
   @IsString()

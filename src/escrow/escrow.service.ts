@@ -1,7 +1,5 @@
 import { Xcrow } from '@xcrowdev/node';
 import { Injectable } from '@nestjs/common';
-import { CreateEscrowDto } from './dto/create-escrow.dto';
-import { UpdateEscrowDto } from './dto/update-escrow.dto';
 import configuration from 'src/config/configuration';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -11,9 +9,14 @@ import {
   ESCROW_TRANSACTION_STATUS,
   EscrowTransaction,
 } from './entities/escrowTransaction.entity';
+import { CreateEscrowDto } from './dto/create-escrow.dto';
+import { hexToUint8Array, signTransaction } from 'src/utils/signTransaction';
+import * as solanaWeb3 from '@solana/web3.js';
 
 const { apiKey, applicationId, network, environment } =
   configuration.escrowConfig;
+
+const { platformPublicKey, platformPrivateKey } = configuration.platformConfig;
 
 @Injectable()
 export class EscrowService {
@@ -30,13 +33,13 @@ export class EscrowService {
     });
   }
 
-  async initializeCreateEscrow(createEscrowDto: CreateEscrowDto) {
-    const { publicKey, amount, inviteCode } = createEscrowDto;
+  async initializeDepositTransaction({ publicKey, amount, vaultId }) {
     try {
-      const depositOutput = await this.xcrow.deposit({
+      const depositTransaction = await this.xcrow.deposit({
         payer: publicKey,
         strategy: 'blockhash',
         priorityFeeLevel: 'Low',
+        vaultId: vaultId,
         token: {
           mintAddress: 'So11111111111111111111111111111111111111112',
           amount: amount,
@@ -44,22 +47,93 @@ export class EscrowService {
         network: network as 'mainnet' | 'devnet',
       });
 
+      const serializedTransactionDeposit =
+        solanaWeb3.VersionedTransaction.deserialize(
+          Buffer.from(depositTransaction.serializedTransaction, 'base64'),
+        );
+      serializedTransactionDeposit.sign([
+        solanaWeb3.Keypair.fromSecretKey(hexToUint8Array(platformPrivateKey)),
+      ]);
+
+      const ser = Buffer.from(
+        serializedTransactionDeposit.serialize(),
+      ).toString('base64');
+
+      return {
+        success: true,
+        data: {
+          serializedTransaction: ser,
+          transactionId: depositTransaction.transactionId,
+        },
+        message: 'Deposit transaction created successfully!',
+      };
+    } catch (error) {
+      console.error('Error during Deposit transaction creation:', error);
+      return {
+        success: false,
+        data: null,
+        message: 'Error during Deposit transaction creation!',
+      };
+    }
+  }
+
+  async createEscrow(updatedCreateEscrowDto: CreateEscrowDto) {
+    const { amount, inviteCode, publicKey } = updatedCreateEscrowDto;
+    try {
+      const createdEscrow = await this.xcrow.createVault({
+        payer: platformPublicKey,
+        strategy: 'blockhash',
+        priorityFeeLevel: 'Medium',
+        token: {
+          mintAddress: 'So11111111111111111111111111111111111111112',
+        },
+        network: network as 'mainnet' | 'devnet',
+      });
+
+      const signedTransaction = await signTransaction(
+        createdEscrow.serializedTransaction,
+        platformPrivateKey,
+      );
+
+      const executeRes = await this.xcrow.execute({
+        vaultId: createdEscrow.vaultId,
+        transactionId: createdEscrow.transactionId,
+        signedTransaction,
+      });
+
       // Create the escrow record in the database
       const newEscrow = this.escrowRepository.create({
         amount,
         inviteCode: inviteCode,
-        vaultId: depositOutput?.vaultId,
+        vaultId: createdEscrow.vaultId,
+        transactionId: createdEscrow.transactionId,
+        transactionHash: executeRes.txHash,
       });
 
       await this.escrowRepository.save(newEscrow);
 
-      return {
-        success: true,
-        data: depositOutput,
-        message: 'Escrow created successfully!',
-      };
-    } catch (error) {
-      console.error('Error during creating a escrow:', error);
+      const depositTransactionDetails = await this.initializeDepositTransaction(
+        {
+          publicKey,
+          amount,
+          vaultId: createdEscrow.vaultId,
+        },
+      );
+
+      if (depositTransactionDetails.success) {
+        return {
+          success: true,
+          data: {
+            escrowDetails: createdEscrow,
+            depositSerializedTransaction: depositTransactionDetails.data,
+          },
+          message: 'Escrow created successfully!',
+        };
+      } else {
+        return depositTransactionDetails;
+      }
+    } catch (e) {
+      console.error('Error during creating a escrow:', e);
       return {
         success: false,
         data: null,
@@ -69,52 +143,7 @@ export class EscrowService {
     }
   }
 
-  async initializeAcceptEscrow(createEscrowDto: CreateEscrowDto) {
-    const { publicKey, inviteCode } = createEscrowDto;
-
-    const escrow = await this.escrowRepository.findOne({
-      where: {
-        inviteCode,
-      },
-    });
-
-    if (escrow) {
-      try {
-        const depositOutput = await this.xcrow.deposit({
-          payer: publicKey,
-          strategy: 'blockhash',
-          priorityFeeLevel: 'Low',
-          token: {
-            mintAddress: 'So11111111111111111111111111111111111111112',
-            amount: Number(escrow.amount),
-          },
-          network: network as 'mainnet' | 'devnet',
-          vaultId: escrow?.vaultId,
-        });
-        return {
-          success: true,
-          data: depositOutput,
-          message: 'Successfully initiated fund transfer!',
-        };
-      } catch (error) {
-        console.error('Error creating an accept transaction:', error);
-        return {
-          success: false,
-          data: null,
-          message:
-            'Error creating an accept transaction, please reload and try again!',
-        };
-      }
-    } else {
-      return {
-        success: false,
-        data: null,
-        message: 'Escrow not found',
-      };
-    }
-  }
-
-  async executeXcrow(xcrowExecuteDto: XcrowExecuteDto) {
+  async executeDepositXcrow(xcrowExecuteDto: XcrowExecuteDto) {
     const {
       vaultId,
       signedTransaction,
@@ -141,6 +170,7 @@ export class EscrowService {
         escrow: escrowAccount,
         status: ESCROW_TRANSACTION_STATUS.Completed,
         transactionHash: result?.txHash,
+        transactionId: transactionId,
         userId,
         role: userRole,
       });
@@ -164,10 +194,6 @@ export class EscrowService {
 
   findOne(id: number) {
     return `This action returns a #${id} escrow`;
-  }
-
-  update(id: number, updateEscrowDto: UpdateEscrowDto) {
-    return `This action updates a #${id} escrow`;
   }
 
   remove(id: number) {
