@@ -4,9 +4,10 @@ import { EscrowController } from './escrow.controller';
 import { Escrow } from './entities/escrow.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { EscrowTransaction } from './entities/escrowTransaction.entity';
+import { Games } from 'src/games/entities/game.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Escrow, EscrowTransaction])],
+  imports: [TypeOrmModule.forFeature([Escrow, EscrowTransaction, Games])],
   controllers: [EscrowController],
   providers: [EscrowService],
 })

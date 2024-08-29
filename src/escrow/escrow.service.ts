@@ -12,6 +12,8 @@ import {
 import { CreateEscrowDto } from './dto/create-escrow.dto';
 import { hexToUint8Array, signTransaction } from 'src/utils/signTransaction';
 import * as solanaWeb3 from '@solana/web3.js';
+import { InitializeAcceptDepositDto } from './dto/initialize-deposit-accept.dto';
+import { Games } from 'src/games/entities/game.entity';
 
 const { apiKey, applicationId, network, environment } =
   configuration.escrowConfig;
@@ -22,6 +24,7 @@ const { platformPublicKey, platformPrivateKey } = configuration.platformConfig;
 export class EscrowService {
   private xcrow: Xcrow;
   @InjectRepository(Escrow) private escrowRepository: Repository<Escrow>;
+  @InjectRepository(Games) private gamesRepository: Repository<Games>;
   @InjectRepository(EscrowTransaction)
   private escrowTransactionRepository: Repository<EscrowTransaction>;
 
@@ -143,6 +146,68 @@ export class EscrowService {
     }
   }
 
+  async initializeDepositAcceptTransaction(
+    initializeAcceptDepositDto: InitializeAcceptDepositDto,
+  ) {
+    try {
+      const { inviteCode, publicKey } = initializeAcceptDepositDto;
+      const escrowDetails = await this.escrowRepository.findOne({
+        where: { inviteCode },
+      });
+      const gameDetails = await this.gamesRepository.findOne({
+        where: {
+          inviteCode,
+        },
+      });
+      if (!escrowDetails) {
+        return {
+          data: null,
+          success: false,
+          message: 'No escrow found for this invite code.',
+        };
+      }
+      if (!gameDetails) {
+        return {
+          data: null,
+          success: false,
+          message: 'No game found for this invite code.',
+        };
+      }
+      if (gameDetails?.acceptorId) {
+        return {
+          data: null,
+          success: false,
+          message: 'A player has already joined the game.',
+        };
+      }
+      const depositDetails = await this.initializeDepositTransaction({
+        publicKey,
+        amount: escrowDetails?.amount,
+        vaultId: escrowDetails?.vaultId,
+      });
+
+      if (depositDetails.success) {
+        return {
+          success: true,
+          data: {
+            escrowDetails: escrowDetails,
+            depositSerializedTransaction: depositDetails.data,
+          },
+          message: 'Accept transaction initialized successfully!',
+        };
+      } else {
+        return depositDetails;
+      }
+    } catch (e) {
+      console.error(e);
+      return {
+        success: false,
+        data: null,
+        message: 'Something went wrong!',
+      };
+    }
+  }
+
   async executeDepositXcrow(xcrowExecuteDto: XcrowExecuteDto) {
     const {
       vaultId,
@@ -177,13 +242,17 @@ export class EscrowService {
 
       await this.escrowTransactionRepository.save(newEscrowTransaction);
 
-      return { data: result, success: true, message: 'Transaction saved!' };
+      return {
+        data: result,
+        success: true,
+        message: 'Transaction executed successfully!',
+      };
     } catch (err) {
       console.error('Xcrow execute error:', err);
       return {
         data: null,
         success: false,
-        message: 'Save transaction failed! Please try again',
+        message: 'Deposit Execute failed! Please try again',
       };
     }
   }

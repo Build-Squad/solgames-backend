@@ -2,6 +2,7 @@ import { Controller, Get, Post, Body, Param, Delete } from '@nestjs/common';
 import { EscrowService } from './escrow.service';
 import { XcrowExecuteDto } from './dto/execute-escrow.dto';
 import { CreateEscrowDto } from './dto/create-escrow.dto';
+import { InitializeAcceptDepositDto } from './dto/initialize-deposit-accept.dto';
 
 @Controller('escrow')
 export class EscrowController {
@@ -10,6 +11,16 @@ export class EscrowController {
   @Post('create-escrow')
   createEscrow(@Body() updatedCreateEscrowDto: CreateEscrowDto) {
     return this.escrowService.createEscrow(updatedCreateEscrowDto);
+  }
+
+  @Post('deposit-accept-transaction')
+  initializeDepositAcceptTransaction(
+    @Body()
+    initializeAcceptDepositDto: InitializeAcceptDepositDto,
+  ) {
+    return this.escrowService.initializeDepositAcceptTransaction(
+      initializeAcceptDepositDto,
+    );
   }
 
   @Post('execute-deposit')
