@@ -24,6 +24,8 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   handleDisconnect(client: Socket) {
     console.log(`Client disconnected: ${client.id}`);
+
+    // This is not happening now
     const game = this.gameService.removePlayerFromGameByPlayerId(client.id);
     if (game) {
       this.server.to(game.id).emit('playerDisconnected', {
@@ -34,37 +36,16 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
-  @SubscribeMessage('createGame')
-  handleCreateGame(client: Socket, gameCode: string) {
-    const { game, error, errorType } = this.gameService.createGame(
-      gameCode,
-      client.id,
-    );
-    if (game) {
-      // Creating a room when a new game is created with game code
-      client.join(gameCode);
-      client.emit('gameCreated', {
-        id: game.id,
-        chess: game.chess.fen(),
-        players: game.players,
-        capturedWhitePieces: game.capturedWhitePieces,
-        capturedBlackPieces: game.capturedBlackPieces,
-      });
-    } else {
-      client.emit('error', {
-        event: 'createGame',
-        errorMessage: error,
-        errorType,
-      });
-    }
-  }
-
   @SubscribeMessage('joinGame')
-  handleJoinGame(client: Socket, gameCode: string) {
-    const { game, error, errorType } = this.gameService.addPlayerToGame(
+  async handleJoinGame(
+    client: Socket,
+    { userId, gameCode }: { userId: string; gameCode: string },
+  ) {
+    const { game, error, errorType } = await this.gameService.addPlayerToGame(
       gameCode,
-      client.id,
+      userId,
     );
+
     if (game) {
       client.join(gameCode);
       this.server.to(gameCode).emit('playerJoined', {
@@ -83,14 +64,35 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
-  @SubscribeMessage('makeMove')
-  handleMakeMove(
+  @SubscribeMessage('inactiveUser')
+  async handlePlayerInactivity(
     client: Socket,
-    { gameId, move }: { gameId: string; move: { from: string; to: string } },
+    { gameId }: { gameId: string; userId: string; inactivityType: string },
   ) {
-    const { valid, game, error, errorType } = this.gameService.makeMove(
+    const { error, errorType, currentPlayer } =
+      await this.gameService.inactivePlayer(gameId);
+
+    this.server.to(gameId).emit('error', {
+      event: 'inactivePlayer',
+      errorMessage: error,
+      errorType,
+      currentPlayer,
+    });
+    return;
+  }
+
+  @SubscribeMessage('makeMove')
+  async handleMakeMove(
+    client: Socket,
+    {
       gameId,
-      client.id,
+      move,
+      userId,
+    }: { gameId: string; move: { from: string; to: string }; userId: string },
+  ) {
+    const { valid, game, error, errorType } = await this.gameService.makeMove(
+      gameId,
+      userId,
       move,
     );
     if (valid && game) {
@@ -102,19 +104,20 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
         capturedBlackPieces: game.capturedBlackPieces,
       });
     } else {
-      if (errorType == 'GAME_DRAW') {
+      if (errorType == 'GAME_DRAW' || errorType == 'GAME_OVER') {
         this.server.to(gameId).emit('error', {
           event: 'makeMove',
           errorMessage: error,
           errorType,
         });
         return;
+      } else {
+        client.emit('error', {
+          event: 'makeMove',
+          errorMessage: error,
+          errorType,
+        });
       }
-      client.emit('error', {
-        event: 'makeMove',
-        errorMessage: error,
-        errorType,
-      });
     }
   }
 }

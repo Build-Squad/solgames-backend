@@ -14,4 +14,14 @@ export default {
     port: process.env.PORT,
     allowedOrigins: process.env.ALLOWED_ORIGINS?.split(',') || [],
   },
+  escrowConfig: {
+    apiKey: process.env.API_KEY,
+    applicationId: process.env.APPLICATION_ID,
+    network: process.env.ESCROW_NETWORK,
+    environment: process.env.XCROW_ENVIRONMENT,
+  },
+  platformConfig: {
+    platformPublicKey: process.env.PLATFORM_PUBLIC_KEY,
+    platformPrivateKey: process.env.PLATFORM_PRIVATE_KEY,
+  },
 };

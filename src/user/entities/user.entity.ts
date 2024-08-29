@@ -1,6 +1,10 @@
 import { Games } from 'src/games/entities/game.entity';
 import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
 
+export enum USER_ROLE {
+  Creator = 'Creator',
+  Acceptor = 'Acceptor',
+}
 @Entity()
 export class User {
   // Relations
@@ -35,10 +39,10 @@ export class User {
   @Column({ nullable: true })
   aggregateVerifier: string;
 
-  @Column({ default: false })
+  @Column({ nullable: true, default: false })
   isMfaEnabled: boolean;
 
-  @Column('text')
+  @Column({ nullable: true })
   idToken: string;
 
   @Column({ unique: true })

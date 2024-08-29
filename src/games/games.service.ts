@@ -1,19 +1,45 @@
 import { Injectable } from '@nestjs/common';
+import { Repository } from 'typeorm';
+import { InjectQueue } from '@nestjs/bull';
+import { Queue } from 'bull';
 import { CreateGameDto } from './dto/create-game.dto';
 import { UpdateGameDto } from './dto/update-game.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Games, GameStatus } from './entities/game.entity';
-import { Repository } from 'typeorm';
+import { ScheduleGameJobs } from './entities/scheduleGame.entity';
 
 @Injectable()
 export class GamesService {
   constructor(
     @InjectRepository(Games) private gameRepository: Repository<Games>,
+    @InjectRepository(ScheduleGameJobs)
+    private scheduledJobRepository: Repository<ScheduleGameJobs>,
+    @InjectQueue('games') private readonly gamesQueue: Queue,
   ) {}
 
   async create(createGameDto: CreateGameDto) {
     const game = this.gameRepository.create(createGameDto);
     const savedGame = await this.gameRepository.save(game);
+
+    const delay =
+      new Date(savedGame.gameDateTime).getTime() - new Date().getTime();
+
+    // Store job entry in the database
+    const scheduledJob = new ScheduleGameJobs();
+    scheduledJob.gameId = savedGame.id;
+    scheduledJob.status = 'Scheduled';
+    scheduledJob.scheduledTime = new Date();
+
+    // Add job to the queue
+    const job = await this.gamesQueue.add(
+      'scheduleGame',
+      { gameId: savedGame.id },
+      { delay: delay },
+    );
+
+    // Update the job ID in the database
+    scheduledJob.jobId = job.id.toString();
+    await this.scheduledJobRepository.save(scheduledJob);
 
     return {
       success: true,
@@ -27,9 +53,12 @@ export class GamesService {
       if (!userId) {
         throw new Error('UserId cannot be null or empty.');
       }
+
       const userGames = await this.gameRepository.find({
-        where: { creatorId: userId },
+        where: [{ creatorId: userId }, { acceptorId: userId }],
+        relations: ['creator', 'acceptor'], // Include related data
       });
+
       return userGames ?? [];
     } catch (e) {
       return {
@@ -62,7 +91,6 @@ export class GamesService {
       };
     }
 
-    // Check if the game has already been accepted or is not in 'Scheduled' status
     if (game.creatorId == acceptorId) {
       return {
         message: 'You cannot accept your own game',
@@ -83,8 +111,26 @@ export class GamesService {
     };
   }
 
+  async findOne(id: string): Promise<Games> {
+    return this.gameRepository.findOne({ where: { id } });
+  }
+
+  async updateGameStatus(game: Games, status: GameStatus) {
+    game.gameStatus = status;
+    await this.gameRepository.save(game);
+  }
+
+  async declareGameWinner(game: Games, winnerId: string) {
+    game.winnerId = winnerId;
+    await this.gameRepository.save(game);
+  }
+
   async findOneByCode(inviteCode: string) {
-    const game = await this.gameRepository.findOne({ where: { inviteCode } });
+    const game = await this.gameRepository.findOne({
+      where: { inviteCode },
+      relations: ['creator', 'acceptor'], // Load related entities
+    });
+
     return game
       ? {
           success: true,
@@ -94,7 +140,7 @@ export class GamesService {
       : {
           success: false,
           data: null,
-          message: 'Could not find the game with given invite code!',
+          message: 'Could not find the game with the given invite code!',
         };
   }
 
@@ -102,7 +148,7 @@ export class GamesService {
     return this.gameRepository.find();
   }
 
-  findOne(id: number) {
+  findOneById(id: number) {
     return `This action returns a #${id} game`;
   }
 
