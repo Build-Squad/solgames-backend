@@ -10,10 +10,11 @@ import {
   EscrowTransaction,
 } from './entities/escrowTransaction.entity';
 import { CreateEscrowDto } from './dto/create-escrow.dto';
-import { hexToUint8Array, signTransaction } from 'src/utils/signTransaction';
+import { signTransaction } from 'src/utils/signTransaction';
 import * as solanaWeb3 from '@solana/web3.js';
 import { InitializeAcceptDepositDto } from './dto/initialize-deposit-accept.dto';
 import { Games } from 'src/games/entities/game.entity';
+import bs58 from 'bs58';
 
 const { apiKey, applicationId, network, environment } =
   configuration.escrowConfig;
@@ -45,7 +46,7 @@ export class EscrowService {
         vaultId: vaultId,
         token: {
           mintAddress: 'So11111111111111111111111111111111111111112',
-          amount: amount,
+          amount: parseFloat(amount),
         },
         network: network as 'mainnet' | 'devnet',
       });
@@ -54,10 +55,10 @@ export class EscrowService {
         solanaWeb3.VersionedTransaction.deserialize(
           Buffer.from(depositTransaction.serializedTransaction, 'base64'),
         );
-      serializedTransactionDeposit.sign([
-        solanaWeb3.Keypair.fromSecretKey(hexToUint8Array(platformPrivateKey)),
-      ]);
 
+      serializedTransactionDeposit.sign([
+        solanaWeb3.Keypair.fromSecretKey(bs58.decode(platformPrivateKey)),
+      ]);
       const ser = Buffer.from(
         serializedTransactionDeposit.serialize(),
       ).toString('base64');
@@ -114,6 +115,8 @@ export class EscrowService {
       });
 
       await this.escrowRepository.save(newEscrow);
+
+      await new Promise((resolve) => setTimeout(resolve, 10000));
 
       const depositTransactionDetails = await this.initializeDepositTransaction(
         {
