@@ -1,5 +1,17 @@
+import { AccessCode } from 'src/access-codes/entities/access-code.entity';
 import { Games } from 'src/games/entities/game.entity';
-import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  OneToMany,
+  JoinColumn,
+  OneToOne,
+  CreateDateColumn,
+  UpdateDateColumn,
+  BeforeInsert,
+  BeforeUpdate,
+} from 'typeorm';
 
 export enum USER_ROLE {
   Creator = 'Creator',
@@ -14,9 +26,18 @@ export class User {
   @OneToMany(() => Games, (game) => game.acceptor)
   acceptedGames: Games[];
 
+  @OneToOne(() => AccessCode, (accessCode) => accessCode.user, {
+    nullable: true,
+  })
+  @JoinColumn()
+  accessCode: AccessCode;
+
+  @OneToMany(() => AccessCode, (accessCode) => accessCode.parentAccessCode)
+  accessCodeReferrals: AccessCode[];
+
   // Table columns
   @PrimaryGeneratedColumn('uuid')
-  id: number;
+  id: string;
 
   @Column({ unique: true, nullable: true })
   email: string;
@@ -47,4 +68,21 @@ export class User {
 
   @Column({ unique: true })
   publicKey: string;
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
+
+  @BeforeInsert()
+  updateDatesBeforeInsert() {
+    this.createdAt = new Date();
+    this.updatedAt = new Date();
+  }
+
+  @BeforeUpdate()
+  updateDatesBeforeUpdate() {
+    this.updatedAt = new Date();
+  }
 }

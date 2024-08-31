@@ -8,6 +8,7 @@ export default {
     db_name: process.env.DATABASE,
     db_username: process.env.DATABASE_USERNAME,
     db_password: process.env.DATABASE_PASSWORD,
+    db_synchronize: process.env.SYNCHRONIZE,
   },
   appConfig: {
     nodeEnv: process.env.NODE_ENV,
