@@ -9,5 +9,6 @@ import { AccessCode } from './entities/access-code.entity';
   imports: [TypeOrmModule.forFeature([AccessCode, User])],
   controllers: [AccessCodesController],
   providers: [AccessCodesService],
+  exports: [AccessCodesService],
 })
 export class AccessCodesModule {}

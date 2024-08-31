@@ -17,6 +17,7 @@ export class UserService {
       where: {
         publicKey: createUserDto.publicKey,
       },
+      relations: ['accessCode'],
     });
 
     if (existingUser) {

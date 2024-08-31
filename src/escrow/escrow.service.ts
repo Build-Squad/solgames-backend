@@ -15,6 +15,8 @@ import * as solanaWeb3 from '@solana/web3.js';
 import { InitializeAcceptDepositDto } from './dto/initialize-deposit-accept.dto';
 import { Games } from 'src/games/entities/game.entity';
 import bs58 from 'bs58';
+import { User } from 'src/user/entities/user.entity';
+import { AccessCodesService } from 'src/access-codes/access-codes.service';
 
 const { apiKey, applicationId, network, environment } =
   configuration.escrowConfig;
@@ -26,10 +28,11 @@ export class EscrowService {
   private xcrow: Xcrow;
   @InjectRepository(Escrow) private escrowRepository: Repository<Escrow>;
   @InjectRepository(Games) private gamesRepository: Repository<Games>;
+  @InjectRepository(User) private userRepository: Repository<User>;
   @InjectRepository(EscrowTransaction)
   private escrowTransactionRepository: Repository<EscrowTransaction>;
 
-  constructor() {
+  constructor(private readonly accessCodeService: AccessCodesService) {
     this.xcrow = new Xcrow({
       apiKey,
       applicationId,
@@ -189,6 +192,8 @@ export class EscrowService {
         vaultId: escrowDetails?.vaultId,
       });
 
+      await new Promise((resolve) => setTimeout(resolve, 10000));
+
       if (depositDetails.success) {
         return {
           success: true,
@@ -228,22 +233,17 @@ export class EscrowService {
         transactionId,
       });
 
-      const escrowAccount = await this.escrowRepository.findOne({
-        where: { inviteCode },
-      });
-
-      // Create the escrow transaction record in the database
-      const newEscrowTransaction = this.escrowTransactionRepository.create({
-        amount: escrowAccount.amount,
-        escrow: escrowAccount,
-        status: ESCROW_TRANSACTION_STATUS.Completed,
-        transactionHash: result?.txHash,
-        transactionId: transactionId,
+      this.saveEscrowTransactionInDb({
+        inviteCode,
+        txHash: result?.txHash,
+        transactionId,
         userId,
-        role: userRole,
+        userRole,
       });
 
-      await this.escrowTransactionRepository.save(newEscrowTransaction);
+      if (userRole == 'Acceptor') {
+        this.createNewAccessCodeForAcceptor({ userId });
+      }
 
       return {
         data: result,
@@ -258,6 +258,45 @@ export class EscrowService {
         message: 'Deposit Execute failed! Please try again',
       };
     }
+  }
+
+  async createNewAccessCodeForAcceptor({ userId }) {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+    });
+    if (user) {
+      await this.accessCodeService.create({
+        isActive: true,
+        userId,
+        parentAccessCodeId: user?.accessCode?.id,
+      });
+    }
+  }
+
+  async saveEscrowTransactionInDb({
+    inviteCode,
+    txHash,
+    transactionId,
+    userId,
+    userRole,
+  }) {
+    const escrowAccount = await this.escrowRepository.findOne({
+      where: { inviteCode },
+    });
+
+    // Create the escrow transaction record in the database
+    const newEscrowTransaction = this.escrowTransactionRepository.create({
+      amount: escrowAccount.amount,
+      escrow: escrowAccount,
+      status: ESCROW_TRANSACTION_STATUS.Completed,
+      transactionHash: txHash,
+      transactionId: transactionId,
+      userId,
+      role: userRole,
+    });
+
+    await this.escrowTransactionRepository.save(newEscrowTransaction);
+    return;
   }
 
   findAll() {

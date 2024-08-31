@@ -10,8 +10,9 @@ import {
 import { AccessCodesService } from './access-codes.service';
 import { CreateAccessCodeDto } from './dto/create-access-code.dto';
 import { UpdateAccessCodeDto } from './dto/update-access-code.dto';
+import { VerifyAccessCodeDto } from './dto/verify-access-code.dto';
 
-@Controller('access-codes')
+@Controller('access-code')
 export class AccessCodesController {
   constructor(private readonly accessCodesService: AccessCodesService) {}
 
@@ -25,9 +26,9 @@ export class AccessCodesController {
     return this.accessCodesService.findAll();
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.accessCodesService.findOne(id);
+  @Post('verify')
+  findOne(@Body() verifyAccessCodeDto: VerifyAccessCodeDto) {
+    return this.accessCodesService.verify(verifyAccessCodeDto);
   }
 
   @Patch(':id')
