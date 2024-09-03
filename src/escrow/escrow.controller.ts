@@ -46,9 +46,9 @@ export class EscrowController {
     return this.escrowService.findAll();
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.escrowService.findOne(+id);
+  @Get('get-escrow/:inviteCode')
+  findOne(@Param('inviteCode') inviteCode: string) {
+    return this.escrowService.findOne(inviteCode);
   }
 
   @Delete(':id')

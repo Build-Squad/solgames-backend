@@ -474,8 +474,23 @@ export class EscrowService {
     return `This action returns all escrow`;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} escrow`;
+  async findOne(inviteCode: string) {
+    const escrow = await this.escrowRepository.findOne({
+      where: { inviteCode },
+    });
+    if (escrow) {
+      return {
+        data: escrow,
+        success: true,
+        message: 'Escrow fetched successfully',
+      };
+    } else {
+      return {
+        data: null,
+        success: false,
+        message: "Couldn't find escrow with the invite code",
+      };
+    }
   }
 
   remove(id: number) {
