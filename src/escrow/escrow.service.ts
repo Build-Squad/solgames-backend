@@ -17,6 +17,7 @@ import { Games } from 'src/games/entities/game.entity';
 import bs58 from 'bs58';
 import { User } from 'src/user/entities/user.entity';
 import { AccessCodesService } from 'src/access-codes/access-codes.service';
+import { Withdrawal } from './entities/withdrawal.entity';
 
 const { apiKey, applicationId, network, environment } =
   configuration.escrowConfig;
@@ -29,6 +30,8 @@ export class EscrowService {
   @InjectRepository(Escrow) private escrowRepository: Repository<Escrow>;
   @InjectRepository(Games) private gamesRepository: Repository<Games>;
   @InjectRepository(User) private userRepository: Repository<User>;
+  @InjectRepository(Withdrawal)
+  private withdrawalRepository: Repository<Withdrawal>;
   @InjectRepository(EscrowTransaction)
   private escrowTransactionRepository: Repository<EscrowTransaction>;
 
@@ -119,8 +122,6 @@ export class EscrowService {
 
       await this.escrowRepository.save(newEscrow);
 
-      await new Promise((resolve) => setTimeout(resolve, 10000));
-
       const depositTransactionDetails = await this.initializeDepositTransaction(
         {
           publicKey,
@@ -191,8 +192,6 @@ export class EscrowService {
         amount: escrowDetails?.amount,
         vaultId: escrowDetails?.vaultId,
       });
-
-      await new Promise((resolve) => setTimeout(resolve, 10000));
 
       if (depositDetails.success) {
         return {
@@ -297,6 +296,178 @@ export class EscrowService {
 
     await this.escrowTransactionRepository.save(newEscrowTransaction);
     return;
+  }
+
+  // Type could be - "WON" | "EXPIRED" | "DRAW";
+  async initializeWithdrawTransaction({ inviteCode, publicKey, type }) {
+    try {
+      const escrow = await this.escrowRepository.findOne({
+        where: {
+          inviteCode,
+        },
+      });
+      if (!escrow) {
+        return {
+          success: false,
+          data: null,
+          message: 'No escrow found for the invite code!',
+        };
+      }
+
+      const withdrawals = await this.withdrawalRepository.find({
+        where: { escrow },
+        relations: ['user'],
+      });
+
+      const alreadyWithdrawn = withdrawals.some(
+        (withdrawal) => withdrawal.user.publicKey === publicKey,
+      );
+
+      if (alreadyWithdrawn) {
+        return {
+          success: false,
+          data: null,
+          message: "You've already withdrawn the funds!",
+        };
+      }
+
+      const totalFundsWithDrawn = withdrawals.reduce((total, withdrawal) => {
+        return total + Number(withdrawal.amount);
+      }, 0);
+
+      // const vault = await this.xcrow.getVaultDetails(escrow.vaultId);
+      // console.log(
+      //   'vault.asset.amount * Math.pow(10, vault.asset.decimals) ============= ',
+      //   vault.asset.amount * Math.pow(10, vault.asset.decimals),
+      // );
+      // console.log('escrow vault ============= ', vault);
+
+      let amount;
+
+      switch (type) {
+        case 'WON':
+        case 'EXPIRED':
+          amount = escrow.amount;
+          break;
+        case 'DRAW':
+          amount = escrow.amount / 2;
+          break;
+      }
+
+      // Return if there isn't sufficient funds
+      if (escrow.amount - totalFundsWithDrawn < amount) {
+        return {
+          success: false,
+          data: null,
+          message: 'Insufficient funds in the escrow!',
+        };
+      }
+
+      // console.log('initial vault amount ==== ', amount);
+      const withdraw = await this.xcrow.withdraw({
+        vaultId: escrow.vaultId,
+        payer: publicKey,
+        strategy: 'blockhash',
+        priorityFeeLevel: 'Medium',
+        token: {
+          mintAddress: 'So11111111111111111111111111111111111111112',
+          amount: parseFloat(amount),
+        },
+        network: 'devnet',
+      });
+
+      return {
+        success: true,
+        data: {
+          serializedTransaction: withdraw.serializedTransaction,
+          transactionId: withdraw.transactionId,
+        },
+        message: 'Withdrawal transaction created successfully!',
+      };
+    } catch (e) {
+      console.error('Error during withdrawal transaction creation:', e);
+      return {
+        success: false,
+        data: null,
+        message: 'Error during withdrawal transaction creation!',
+      };
+    }
+  }
+
+  async executeWithdrawal({
+    inviteCode,
+    transactionId,
+    signedTransaction,
+    publicKey,
+    type,
+  }) {
+    try {
+      const escrow = await this.escrowRepository.findOne({
+        where: {
+          inviteCode,
+        },
+      });
+      const executeRes = await this.xcrow.execute({
+        vaultId: escrow.vaultId,
+        transactionId,
+        signedTransaction,
+      });
+
+      if (executeRes.txHash) {
+        this.saveWithdrawalTransactionInDb({
+          inviteCode,
+          txHash: executeRes.txHash,
+          transactionId,
+          publicKey,
+          type,
+        });
+      }
+
+      return;
+    } catch (e) {
+      console.error('Error during withdrawal execute transaction:', e);
+      return {
+        success: false,
+        data: null,
+        message: 'Error during withdrawal execute transaction!',
+      };
+    }
+  }
+
+  async saveWithdrawalTransactionInDb({
+    inviteCode,
+    txHash,
+    transactionId,
+    publicKey,
+    type,
+  }) {
+    const escrow = await this.escrowRepository.findOne({
+      where: { inviteCode },
+    });
+    const user = await this.userRepository.findOne({ where: { publicKey } });
+    const game = await this.gamesRepository.findOne({ where: { inviteCode } });
+
+    let withdrawnAmount;
+
+    switch (type) {
+      case 'WON':
+      case 'EXPIRED':
+        withdrawnAmount = escrow.amount;
+        break;
+      case 'DRAW':
+        withdrawnAmount = escrow.amount / 2;
+        break;
+    }
+
+    const withdrawal = new Withdrawal();
+    withdrawal.user = user;
+    withdrawal.game = game;
+    withdrawal.escrow = escrow;
+    withdrawal.amount = withdrawnAmount;
+    withdrawal.transactionId = transactionId;
+    withdrawal.transactionHash = txHash;
+
+    return this.withdrawalRepository.save(withdrawal);
   }
 
   findAll() {

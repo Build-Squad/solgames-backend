@@ -27,6 +27,19 @@ export class EscrowController {
   async executeXcrow(@Body() xcrowExecuteDto: XcrowExecuteDto) {
     return await this.escrowService.executeDepositXcrow(xcrowExecuteDto);
   }
+  @Post('withdrawal-transaction')
+  async withdrawalTransaction(@Body() xcrowWithdrawalTransaction: any) {
+    return await this.escrowService.initializeWithdrawTransaction(
+      xcrowWithdrawalTransaction,
+    );
+  }
+
+  @Post('execute-withdrawal')
+  async executeWithdrawal(@Body() xcrowExecuteWithdrawalDto: any) {
+    return await this.escrowService.executeWithdrawal(
+      xcrowExecuteWithdrawalDto,
+    );
+  }
 
   @Get()
   findAll() {

@@ -1,45 +1,42 @@
+import { Games } from 'src/games/entities/game.entity';
+import { User } from 'src/user/entities/user.entity';
 import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
+  ManyToOne,
   CreateDateColumn,
+  JoinColumn,
   UpdateDateColumn,
-  OneToMany,
   BeforeInsert,
   BeforeUpdate,
 } from 'typeorm';
-import { EscrowTransaction } from './escrowTransaction.entity';
-import { Withdrawal } from './withdrawal.entity';
+import { Escrow } from './escrow.entity';
 
 @Entity()
-export class Escrow {
+export class Withdrawal {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @ManyToOne(() => Escrow, (escrow) => escrow.withdrawal)
+  escrow: Escrow;
+
+  @ManyToOne(() => User, (user) => user.withdrawals, { nullable: false })
+  @JoinColumn({ name: 'userId' })
+  user: User;
+
+  @ManyToOne(() => Games, (game) => game.withdrawals, { nullable: false })
+  @JoinColumn({ name: 'gameId' })
+  game: Games;
 
   @Column('decimal', { precision: 20, scale: 8 })
   amount: number;
 
-  @Column({ nullable: true })
-  vaultId: string;
-
-  @Column({ nullable: true })
+  @Column({ nullable: false })
   transactionId: string;
 
-  @Column({ nullable: true })
+  @Column()
   transactionHash: string;
-
-  @Column({ unique: true })
-  inviteCode: string;
-
-  @OneToMany(() => EscrowTransaction, (transaction) => transaction.escrow, {
-    cascade: true,
-  })
-  transactions: EscrowTransaction[];
-
-  @OneToMany(() => Withdrawal, (withdrawal) => withdrawal.escrow, {
-    cascade: true,
-  })
-  withdrawal: Withdrawal[];
 
   @CreateDateColumn()
   createdAt: Date;

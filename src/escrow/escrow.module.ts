@@ -7,10 +7,17 @@ import { EscrowTransaction } from './entities/escrowTransaction.entity';
 import { Games } from 'src/games/entities/game.entity';
 import { User } from 'src/user/entities/user.entity';
 import { AccessCodesModule } from 'src/access-codes/access-codes.module';
+import { Withdrawal } from './entities/withdrawal.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Escrow, EscrowTransaction, Games, User]),
+    TypeOrmModule.forFeature([
+      Escrow,
+      EscrowTransaction,
+      Games,
+      User,
+      Withdrawal,
+    ]),
     AccessCodesModule,
   ],
   controllers: [EscrowController],

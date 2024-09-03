@@ -1,4 +1,5 @@
 import { AccessCode } from 'src/access-codes/entities/access-code.entity';
+import { Withdrawal } from 'src/escrow/entities/withdrawal.entity';
 import { Games } from 'src/games/entities/game.entity';
 import {
   Entity,
@@ -34,6 +35,9 @@ export class User {
 
   @OneToMany(() => AccessCode, (accessCode) => accessCode.parentAccessCode)
   accessCodeReferrals: AccessCode[];
+
+  @OneToMany(() => Withdrawal, (withdrawal) => withdrawal.user)
+  withdrawals: Withdrawal[];
 
   // Table columns
   @PrimaryGeneratedColumn('uuid')
