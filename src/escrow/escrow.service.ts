@@ -314,6 +314,9 @@ export class EscrowService {
         };
       }
 
+      const vault = await this.xcrow.getVaultDetails(escrow.vaultId);
+      const vaultAmount = vault.asset.amountParsed;
+
       const withdrawals = await this.withdrawalRepository.find({
         where: { escrow },
         relations: ['user'],
@@ -331,39 +334,26 @@ export class EscrowService {
         };
       }
 
-      const totalFundsWithDrawn = withdrawals.reduce((total, withdrawal) => {
-        return total + Number(withdrawal.amount);
-      }, 0);
-
-      // const vault = await this.xcrow.getVaultDetails(escrow.vaultId);
-      // console.log(
-      //   'vault.asset.amount * Math.pow(10, vault.asset.decimals) ============= ',
-      //   vault.asset.amount * Math.pow(10, vault.asset.decimals),
-      // );
-      // console.log('escrow vault ============= ', vault);
-
       let amount;
 
       switch (type) {
         case 'WON':
+          amount = escrow.amount * 2;
         case 'EXPIRED':
-          amount = escrow.amount;
-          break;
         case 'DRAW':
-          amount = escrow.amount / 2;
+          amount = escrow.amount;
           break;
       }
 
       // Return if there isn't sufficient funds
-      if (escrow.amount - totalFundsWithDrawn < amount) {
+      if (vaultAmount < amount) {
         return {
           success: false,
           data: null,
-          message: 'Insufficient funds in the escrow!',
+          message: 'Insufficient funds in the escrow, please contact support!',
         };
       }
 
-      // console.log('initial vault amount ==== ', amount);
       const withdraw = await this.xcrow.withdraw({
         vaultId: escrow.vaultId,
         payer: publicKey,
@@ -423,7 +413,11 @@ export class EscrowService {
         });
       }
 
-      return;
+      return {
+        data: null,
+        success: true,
+        message: 'Hurray! Funds transferred to your account successfully.',
+      };
     } catch (e) {
       console.error('Error during withdrawal execute transaction:', e);
       return {
