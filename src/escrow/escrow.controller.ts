@@ -27,15 +27,28 @@ export class EscrowController {
   async executeXcrow(@Body() xcrowExecuteDto: XcrowExecuteDto) {
     return await this.escrowService.executeDepositXcrow(xcrowExecuteDto);
   }
+  @Post('withdrawal-transaction')
+  async withdrawalTransaction(@Body() xcrowWithdrawalTransaction: any) {
+    return await this.escrowService.initializeWithdrawTransaction(
+      xcrowWithdrawalTransaction,
+    );
+  }
+
+  @Post('execute-withdrawal')
+  async executeWithdrawal(@Body() xcrowExecuteWithdrawalDto: any) {
+    return await this.escrowService.executeWithdrawal(
+      xcrowExecuteWithdrawalDto,
+    );
+  }
 
   @Get()
   findAll() {
     return this.escrowService.findAll();
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.escrowService.findOne(+id);
+  @Get('get-escrow/:inviteCode')
+  findOne(@Param('inviteCode') inviteCode: string) {
+    return this.escrowService.findOne(inviteCode);
   }
 
   @Delete(':id')

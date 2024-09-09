@@ -10,10 +10,14 @@ import {
   EscrowTransaction,
 } from './entities/escrowTransaction.entity';
 import { CreateEscrowDto } from './dto/create-escrow.dto';
-import { hexToUint8Array, signTransaction } from 'src/utils/signTransaction';
+import { signTransaction } from 'src/utils/signTransaction';
 import * as solanaWeb3 from '@solana/web3.js';
 import { InitializeAcceptDepositDto } from './dto/initialize-deposit-accept.dto';
 import { Games } from 'src/games/entities/game.entity';
+import bs58 from 'bs58';
+import { User } from 'src/user/entities/user.entity';
+import { AccessCodesService } from 'src/access-codes/access-codes.service';
+import { Withdrawal } from './entities/withdrawal.entity';
 
 const { apiKey, applicationId, network, environment } =
   configuration.escrowConfig;
@@ -25,10 +29,13 @@ export class EscrowService {
   private xcrow: Xcrow;
   @InjectRepository(Escrow) private escrowRepository: Repository<Escrow>;
   @InjectRepository(Games) private gamesRepository: Repository<Games>;
+  @InjectRepository(User) private userRepository: Repository<User>;
+  @InjectRepository(Withdrawal)
+  private withdrawalRepository: Repository<Withdrawal>;
   @InjectRepository(EscrowTransaction)
   private escrowTransactionRepository: Repository<EscrowTransaction>;
 
-  constructor() {
+  constructor(private readonly accessCodeService: AccessCodesService) {
     this.xcrow = new Xcrow({
       apiKey,
       applicationId,
@@ -45,7 +52,7 @@ export class EscrowService {
         vaultId: vaultId,
         token: {
           mintAddress: 'So11111111111111111111111111111111111111112',
-          amount: amount,
+          amount: parseFloat(amount),
         },
         network: network as 'mainnet' | 'devnet',
       });
@@ -54,10 +61,10 @@ export class EscrowService {
         solanaWeb3.VersionedTransaction.deserialize(
           Buffer.from(depositTransaction.serializedTransaction, 'base64'),
         );
-      serializedTransactionDeposit.sign([
-        solanaWeb3.Keypair.fromSecretKey(hexToUint8Array(platformPrivateKey)),
-      ]);
 
+      serializedTransactionDeposit.sign([
+        solanaWeb3.Keypair.fromSecretKey(bs58.decode(platformPrivateKey)),
+      ]);
       const ser = Buffer.from(
         serializedTransactionDeposit.serialize(),
       ).toString('base64');
@@ -225,22 +232,17 @@ export class EscrowService {
         transactionId,
       });
 
-      const escrowAccount = await this.escrowRepository.findOne({
-        where: { inviteCode },
-      });
-
-      // Create the escrow transaction record in the database
-      const newEscrowTransaction = this.escrowTransactionRepository.create({
-        amount: escrowAccount.amount,
-        escrow: escrowAccount,
-        status: ESCROW_TRANSACTION_STATUS.Completed,
-        transactionHash: result?.txHash,
-        transactionId: transactionId,
+      this.saveEscrowTransactionInDb({
+        inviteCode,
+        txHash: result?.txHash,
+        transactionId,
         userId,
-        role: userRole,
+        userRole,
       });
 
-      await this.escrowTransactionRepository.save(newEscrowTransaction);
+      if (userRole == 'Acceptor') {
+        this.createNewAccessCodeForAcceptor({ userId });
+      }
 
       return {
         data: result,
@@ -257,12 +259,232 @@ export class EscrowService {
     }
   }
 
+  async createNewAccessCodeForAcceptor({ userId }) {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+    });
+    if (user) {
+      await this.accessCodeService.create({
+        isActive: true,
+        userId,
+        parentAccessCodeId: user?.accessCode?.id,
+      });
+    }
+  }
+
+  async saveEscrowTransactionInDb({
+    inviteCode,
+    txHash,
+    transactionId,
+    userId,
+    userRole,
+  }) {
+    const escrowAccount = await this.escrowRepository.findOne({
+      where: { inviteCode },
+    });
+
+    // Create the escrow transaction record in the database
+    const newEscrowTransaction = this.escrowTransactionRepository.create({
+      amount: escrowAccount.amount,
+      escrow: escrowAccount,
+      status: ESCROW_TRANSACTION_STATUS.Completed,
+      transactionHash: txHash,
+      transactionId: transactionId,
+      userId,
+      role: userRole,
+    });
+
+    await this.escrowTransactionRepository.save(newEscrowTransaction);
+    return;
+  }
+
+  // Type could be - "WON" | "EXPIRED" | "DRAW";
+  async initializeWithdrawTransaction({ inviteCode, publicKey, type }) {
+    try {
+      const escrow = await this.escrowRepository.findOne({
+        where: {
+          inviteCode,
+        },
+      });
+      if (!escrow) {
+        return {
+          success: false,
+          data: null,
+          message: 'No escrow found for the invite code!',
+        };
+      }
+
+      const vault = await this.xcrow.getVaultDetails(escrow.vaultId);
+      const vaultAmount = vault.asset.amountParsed;
+
+      const withdrawals = await this.withdrawalRepository.find({
+        where: { escrow },
+        relations: ['user'],
+      });
+
+      const alreadyWithdrawn = withdrawals.some(
+        (withdrawal) => withdrawal.user.publicKey === publicKey,
+      );
+
+      if (alreadyWithdrawn) {
+        return {
+          success: false,
+          data: null,
+          message: "You've already withdrawn the funds!",
+        };
+      }
+
+      let amount;
+
+      switch (type) {
+        case 'WON':
+          amount = escrow.amount * 2;
+        case 'EXPIRED':
+        case 'DRAW':
+          amount = escrow.amount;
+          break;
+      }
+
+      // Return if there isn't sufficient funds
+      if (vaultAmount < amount) {
+        return {
+          success: false,
+          data: null,
+          message: 'Insufficient funds in the escrow, please contact support!',
+        };
+      }
+
+      const withdraw = await this.xcrow.withdraw({
+        vaultId: escrow.vaultId,
+        payer: publicKey,
+        strategy: 'blockhash',
+        priorityFeeLevel: 'Medium',
+        token: {
+          mintAddress: 'So11111111111111111111111111111111111111112',
+          amount: parseFloat(amount),
+        },
+        network: 'devnet',
+      });
+
+      return {
+        success: true,
+        data: {
+          serializedTransaction: withdraw.serializedTransaction,
+          transactionId: withdraw.transactionId,
+        },
+        message: 'Withdrawal transaction created successfully!',
+      };
+    } catch (e) {
+      console.error('Error during withdrawal transaction creation:', e);
+      return {
+        success: false,
+        data: null,
+        message: 'Error during withdrawal transaction creation!',
+      };
+    }
+  }
+
+  async executeWithdrawal({
+    inviteCode,
+    transactionId,
+    signedTransaction,
+    publicKey,
+    type,
+  }) {
+    try {
+      const escrow = await this.escrowRepository.findOne({
+        where: {
+          inviteCode,
+        },
+      });
+      const executeRes = await this.xcrow.execute({
+        vaultId: escrow.vaultId,
+        transactionId,
+        signedTransaction,
+      });
+
+      if (executeRes.txHash) {
+        this.saveWithdrawalTransactionInDb({
+          inviteCode,
+          txHash: executeRes.txHash,
+          transactionId,
+          publicKey,
+          type,
+        });
+      }
+
+      return {
+        data: null,
+        success: true,
+        message: 'Hurray! Funds transferred to your account successfully.',
+      };
+    } catch (e) {
+      console.error('Error during withdrawal execute transaction:', e);
+      return {
+        success: false,
+        data: null,
+        message: 'Error during withdrawal execute transaction!',
+      };
+    }
+  }
+
+  async saveWithdrawalTransactionInDb({
+    inviteCode,
+    txHash,
+    transactionId,
+    publicKey,
+    type,
+  }) {
+    const escrow = await this.escrowRepository.findOne({
+      where: { inviteCode },
+    });
+    const user = await this.userRepository.findOne({ where: { publicKey } });
+    const game = await this.gamesRepository.findOne({ where: { inviteCode } });
+
+    let withdrawnAmount;
+
+    switch (type) {
+      case 'WON':
+      case 'EXPIRED':
+        withdrawnAmount = escrow.amount;
+        break;
+      case 'DRAW':
+        withdrawnAmount = escrow.amount / 2;
+        break;
+    }
+
+    const withdrawal = new Withdrawal();
+    withdrawal.user = user;
+    withdrawal.game = game;
+    withdrawal.escrow = escrow;
+    withdrawal.amount = withdrawnAmount;
+    withdrawal.transactionId = transactionId;
+    withdrawal.transactionHash = txHash;
+
+    return this.withdrawalRepository.save(withdrawal);
+  }
+
   findAll() {
     return `This action returns all escrow`;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} escrow`;
+  async findOne(inviteCode: string) {
+    const escrow = await this.escrowRepository.findOne({
+      where: { inviteCode },
+    });
+    if (escrow) {
+      return {
+        data: escrow,
+        success: true,
+        message: 'Escrow fetched successfully',
+      };
+    } else {
+      return {
+        data: null,
+        success: false,
+        message: "Couldn't find escrow with the invite code",
+      };
+    }
   }
 
   remove(id: number) {

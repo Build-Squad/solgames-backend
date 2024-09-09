@@ -8,8 +8,10 @@ import {
   JoinColumn,
   BeforeInsert,
   BeforeUpdate,
+  OneToMany,
 } from 'typeorm';
 import { User } from '../../user/entities/user.entity';
+import { Withdrawal } from 'src/escrow/entities/withdrawal.entity';
 
 export enum GameStatus {
   Scheduled = 'Scheduled', //When a user creates a game.
@@ -30,6 +32,11 @@ export class Games {
   @ManyToOne(() => User, (user) => user.acceptedGames, { nullable: true })
   @JoinColumn({ name: 'acceptorId' })
   acceptor: User;
+
+  @OneToMany(() => Withdrawal, (withdrawal) => withdrawal.game, {
+    cascade: true,
+  })
+  withdrawals: Withdrawal[];
 
   //   Table columns
   @PrimaryGeneratedColumn('uuid')

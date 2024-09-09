@@ -14,8 +14,11 @@ import { ScheduleGameJobs } from './games/entities/scheduleGame.entity';
 import { EscrowModule } from './escrow/escrow.module';
 import { Escrow } from './escrow/entities/escrow.entity';
 import { EscrowTransaction } from './escrow/entities/escrowTransaction.entity';
+import { AccessCodesModule } from './access-codes/access-codes.module';
+import { AccessCode } from './access-codes/entities/access-code.entity';
+import { Withdrawal } from './escrow/entities/withdrawal.entity';
 
-const { db_host, db_name, db_password, db_username } =
+const { db_host, db_name, db_password, db_username, db_synchronize } =
   configuration.databaseConfig;
 
 @Module({
@@ -26,9 +29,17 @@ const { db_host, db_name, db_password, db_username } =
       port: 5432,
       password: db_password,
       username: db_username,
-      entities: [User, Games, ScheduleGameJobs, Escrow, EscrowTransaction],
+      entities: [
+        User,
+        Games,
+        ScheduleGameJobs,
+        Escrow,
+        EscrowTransaction,
+        AccessCode,
+        Withdrawal,
+      ],
       database: db_name,
-      synchronize: true,
+      synchronize: !!db_synchronize,
       logging: true,
     }),
     ScheduleModule.forRoot(),
@@ -42,6 +53,7 @@ const { db_host, db_name, db_password, db_username } =
     UserModule,
     GamesModule,
     EscrowModule,
+    AccessCodesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

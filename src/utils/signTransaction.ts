@@ -1,14 +1,11 @@
 import * as solanaWeb3 from '@solana/web3.js';
-
-export function hexToUint8Array(hexString: string) {
-  return Uint8Array.from(Buffer.from(hexString, 'hex'));
-}
+import bs58 from 'bs58';
 
 export async function signTransaction(
   serializedTransaction: string,
   secretKey: string,
 ) {
-  const secretKeyBytes = hexToUint8Array(secretKey);
+  const secretKeyBytes = bs58.decode(secretKey);
 
   const keypair = solanaWeb3.Keypair.fromSecretKey(secretKeyBytes);
 

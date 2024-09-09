@@ -5,9 +5,15 @@ import {
   ManyToOne,
   CreateDateColumn,
   UpdateDateColumn,
+  BeforeInsert,
+  BeforeUpdate,
 } from 'typeorm';
 import { Escrow } from './escrow.entity';
-import { USER_ROLE } from 'src/user/entities/user.entity';
+
+enum USER_ROLE {
+  Creator = 'Creator',
+  Acceptor = 'Acceptor',
+}
 
 export enum ESCROW_TRANSACTION_STATUS {
   Pending = 'Pending',
@@ -46,4 +52,15 @@ export class EscrowTransaction {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @BeforeInsert()
+  updateDatesBeforeInsert() {
+    this.createdAt = new Date();
+    this.updatedAt = new Date();
+  }
+
+  @BeforeUpdate()
+  updateDatesBeforeUpdate() {
+    this.updatedAt = new Date();
+  }
 }

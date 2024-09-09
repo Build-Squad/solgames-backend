@@ -56,7 +56,7 @@ export class GamesService {
 
       const userGames = await this.gameRepository.find({
         where: [{ creatorId: userId }, { acceptorId: userId }],
-        relations: ['creator', 'acceptor'], // Include related data
+        relations: ['creator', 'acceptor', 'withdrawals', 'withdrawals.user'],
       });
 
       return userGames ?? [];
