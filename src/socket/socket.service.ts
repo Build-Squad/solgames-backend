@@ -146,6 +146,27 @@ export class SocketService {
     };
   }
 
+  async surrenderCall(gameId: string, playerId: string) {
+    const gameDetails = await this.gameRepository.findOne({
+      where: { inviteCode: gameId },
+    });
+    const game = this.games.get(gameId);
+    const loser = game.players.find((player) => player.id == playerId);
+
+    const winner = game.players.find((player) => player.id != playerId);
+
+    gameDetails.gameStatus = GameStatus.Completed;
+    gameDetails.winnerId = winner.id;
+    game.winner = winner.color;
+    game.gameOver = true;
+    await this.gameRepository.save(gameDetails);
+    return {
+      error: 'surrenderCall',
+      errorType: 'GAME_SURRENDER',
+      currentPlayer: loser.color,
+    };
+  }
+
   async makeMove(
     gameId: string,
     playerId: string,

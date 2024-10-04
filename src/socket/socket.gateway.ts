@@ -81,6 +81,23 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
     return;
   }
 
+  @SubscribeMessage('surrenderCall')
+  async handlePlayerSurrender(
+    client: Socket,
+    { gameId, userId }: { gameId: string; userId: string },
+  ) {
+    const { error, errorType, currentPlayer } =
+      await this.gameService.surrenderCall(gameId, userId);
+
+    this.server.to(gameId).emit('error', {
+      event: 'inactivePlayer',
+      errorMessage: error,
+      errorType,
+      currentPlayer,
+    });
+    return;
+  }
+
   @SubscribeMessage('makeMove')
   async handleMakeMove(
     client: Socket,
