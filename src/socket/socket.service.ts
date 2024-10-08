@@ -24,7 +24,7 @@ export class SocketService {
   ) {}
 
   createGame(gameCode: string, userId: string) {
-    const chess = new Chess('4R3/8/8/8/8/6K1/5Q2/7k w - - 5 14');
+    const chess = new Chess();
     const game: WebSocketGameStruct = {
       id: gameCode,
       chess,
