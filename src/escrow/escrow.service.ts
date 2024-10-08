@@ -339,6 +339,7 @@ export class EscrowService {
       switch (type) {
         case 'WON':
           amount = escrow.amount * 2;
+          break;
         case 'EXPIRED':
         case 'DRAW':
           amount = escrow.amount;
