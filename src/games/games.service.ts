@@ -51,15 +51,26 @@ export class GamesService {
   async getGamesByUserId(userId: string) {
     try {
       if (!userId) {
-        throw new Error('UserId cannot be null or empty.');
+        return {
+          success: false,
+          message: 'User Id not passed',
+          data: null,
+        };
       }
 
       const userGames = await this.gameRepository.find({
         where: [{ creatorId: userId }, { acceptorId: userId }],
         relations: ['creator', 'acceptor', 'withdrawals', 'withdrawals.user'],
+        order: {
+          gameDateTime: 'DESC',
+        },
       });
 
-      return userGames ?? [];
+      return {
+        success: true,
+        message: 'User games fetched successfully!',
+        data: userGames ?? [],
+      };
     } catch (e) {
       return {
         success: false,
