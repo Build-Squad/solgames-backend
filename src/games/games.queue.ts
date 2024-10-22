@@ -60,6 +60,7 @@ export class GamesQueue {
     await this.scheduledJobRepository.save(scheduledJob);
   }
 
+  // This will check if both the player's have joined the game in 5 minutes or not
   @Process('delayedGameTask')
   async handleDelayedGameTask(job: Job) {
     const { inviteCode, gameId } = job.data;

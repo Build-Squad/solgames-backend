@@ -38,5 +38,6 @@ export class CreateUserDto {
   idToken: string;
 
   @IsString()
+  @IsOptional()
   publicKey: string;
 }
