@@ -18,8 +18,10 @@ import { AccessCodesModule } from './access-codes/access-codes.module';
 import { AccessCode } from './access-codes/entities/access-code.entity';
 import { Withdrawal } from './escrow/entities/withdrawal.entity';
 
-const { db_host, db_name, db_password, db_username, db_synchronize } =
+const { db_host, db_name, db_password, db_username, db_synchronize, db_ssl } =
   configuration.databaseConfig;
+
+const sslOptions = db_ssl === 'true' ? { rejectUnauthorized: true } : false;
 
 @Module({
   imports: [
@@ -41,6 +43,7 @@ const { db_host, db_name, db_password, db_username, db_synchronize } =
       database: db_name,
       synchronize: !!db_synchronize,
       logging: true,
+      ssl: sslOptions,
     }),
     ScheduleModule.forRoot(),
     BullModule.forRoot({
