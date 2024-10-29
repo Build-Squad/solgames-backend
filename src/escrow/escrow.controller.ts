@@ -9,16 +9,16 @@ export class EscrowController {
   constructor(private readonly escrowService: EscrowService) {}
 
   @Post('create-escrow')
-  createEscrow(@Body() updatedCreateEscrowDto: CreateEscrowDto) {
-    return this.escrowService.createEscrow(updatedCreateEscrowDto);
+  async createEscrow(@Body() updatedCreateEscrowDto: CreateEscrowDto) {
+    return await this.escrowService.createEscrow(updatedCreateEscrowDto);
   }
 
   @Post('deposit-accept-transaction')
-  initializeDepositAcceptTransaction(
+  async initializeDepositAcceptTransaction(
     @Body()
     initializeAcceptDepositDto: InitializeAcceptDepositDto,
   ) {
-    return this.escrowService.initializeDepositAcceptTransaction(
+    return await this.escrowService.initializeDepositAcceptTransaction(
       initializeAcceptDepositDto,
     );
   }

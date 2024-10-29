@@ -21,7 +21,7 @@ import { Withdrawal } from './escrow/entities/withdrawal.entity';
 const { db_host, db_name, db_password, db_username, db_synchronize, db_ssl } =
   configuration.databaseConfig;
 
-const sslOptions = db_ssl === 'true' ? { rejectUnauthorized: true } : false;
+const sslOptions = db_ssl === 'true' ? { rejectUnauthorized: false } : false;
 
 @Module({
   imports: [
