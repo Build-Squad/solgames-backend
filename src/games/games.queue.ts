@@ -60,6 +60,7 @@ export class GamesQueue {
     await this.scheduledJobRepository.save(scheduledJob);
   }
 
+  // This will check if both the player's have joined the game in 5 minutes or not
   @Process('delayedGameTask')
   async handleDelayedGameTask(job: Job) {
     const { inviteCode, gameId } = job.data;
@@ -69,13 +70,13 @@ export class GamesQueue {
     const game = await this.gamesService.findOne(gameId);
 
     if (!socketGameData) {
-      console.log(`Game with ID ${inviteCode} not found in WebSocket store`);
+      this.gamesService.updateGameStatus(game, GameStatus.Expired);
       return;
     }
 
     // Implement logic to handle the state of the game after 5 minutes
     if (socketGameData.players.length == 0) {
-      game.gameStatus = GameStatus.Expired;
+      this.gamesService.updateGameStatus(game, GameStatus.Expired);
     } else if (socketGameData.players.length == 1) {
       // If any 1 player hasn't joined, completed the game and make the other one winner.
       this.gamesService.updateGameStatus(game, GameStatus.Completed);
