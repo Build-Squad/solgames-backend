@@ -16,3 +16,11 @@ export async function generateUniqueCode(
 
   return code;
 }
+
+export function returnStruct(success: boolean, message: string, data: any) {
+  return {
+    success,
+    message,
+    data,
+  };
+}

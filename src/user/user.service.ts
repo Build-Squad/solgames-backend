@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { returnStruct } from 'src/utils/helper';
 
 @Injectable()
 export class UserService {
@@ -13,6 +14,9 @@ export class UserService {
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<any> {
+    if (!createUserDto.publicKey) {
+      returnStruct(false, 'No public key passed!', null);
+    }
     const existingUser = await this.userRepository.findOne({
       where: {
         publicKey: createUserDto.publicKey,
