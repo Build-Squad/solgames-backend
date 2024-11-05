@@ -17,6 +17,8 @@ import { EscrowTransaction } from './escrow/entities/escrowTransaction.entity';
 import { AccessCodesModule } from './access-codes/access-codes.module';
 import { AccessCode } from './access-codes/entities/access-code.entity';
 import { Withdrawal } from './escrow/entities/withdrawal.entity';
+import { TournamentModule } from './tournament/tournament.module';
+import { Tournament } from './tournament/entities/tournament.entity';
 
 const { db_host, db_name, db_password, db_username, db_synchronize } =
   configuration.databaseConfig;
@@ -37,6 +39,7 @@ const { db_host, db_name, db_password, db_username, db_synchronize } =
         EscrowTransaction,
         AccessCode,
         Withdrawal,
+        Tournament,
       ],
       database: db_name,
       synchronize: !!db_synchronize,
@@ -54,6 +57,7 @@ const { db_host, db_name, db_password, db_username, db_synchronize } =
     GamesModule,
     EscrowModule,
     AccessCodesModule,
+    TournamentModule,
   ],
   controllers: [AppController],
   providers: [AppService],
