@@ -25,7 +25,7 @@ export class TournamentParticipant {
   @Column({ type: 'varchar', length: 100 })
   alias: string;
 
-  @Column({ unique: true })
+  @Column()
   walletAddress: string;
 
   @CreateDateColumn()

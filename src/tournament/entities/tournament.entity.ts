@@ -29,7 +29,7 @@ export class Tournament {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ type: 'varchar', length: 100 })
+  @Column({ type: 'varchar', length: 100, unique: true })
   tournamentName: string;
 
   @Column({ type: 'text', nullable: true })
@@ -68,9 +68,6 @@ export class Tournament {
 
   @ManyToOne(() => User, { nullable: true })
   createdBy: User;
-
-  @ManyToOne(() => User, { nullable: true })
-  winner: User;
 
   @CreateDateColumn()
   createdAt: Date;

@@ -8,9 +8,7 @@ export class TournamentController {
   constructor(private readonly tournamentService: TournamentService) {}
 
   @Post()
-  create(
-    @Body() createTournamentDto: CreateTournamentDto,
-  ): Promise<Tournament> {
+  create(@Body() createTournamentDto: CreateTournamentDto) {
     return this.tournamentService.create(createTournamentDto);
   }
 

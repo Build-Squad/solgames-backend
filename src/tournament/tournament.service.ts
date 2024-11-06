@@ -2,12 +2,10 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Tournament } from './entities/tournament.entity';
-import {
-  CreateTournamentDto,
-  UpdateTournamentDto,
-} from './dto/create-tournament.dto';
+import { CreateTournamentDto } from './dto/create-tournament.dto';
 import { TournamentParticipant } from './entities/tournament-participant.entity';
 import { User } from '../user/entities/user.entity';
+import { returnStruct } from 'src/utils/helper';
 
 @Injectable()
 export class TournamentService {
@@ -22,12 +20,12 @@ export class TournamentService {
     private userRepository: Repository<User>,
   ) {}
 
-  async create(createTournamentDto: CreateTournamentDto): Promise<Tournament> {
+  async create(createTournamentDto: CreateTournamentDto) {
     const { adminId, participants, ...tournamentData } = createTournamentDto;
 
     // Find the admin user
     const admin = await this.userRepository.findOne({ where: { id: adminId } });
-    if (!admin) throw new NotFoundException('Admin user not found');
+    if (!admin) return returnStruct(false, 'User not found', null);
 
     const tournament = this.tournamentRepository.create({
       ...tournamentData,
@@ -43,13 +41,20 @@ export class TournamentService {
         tournament: savedTournament,
         alias: participant.alias,
         walletAddress: participant.walletAddress,
-        user: null, // we need to check her if the person who's wallet is referred is already a user or not.
+
+        // Here check if a user is alread there with the given wallet.
+        // If not, when a new user is created, check the wallet address and add the corresponding user here
+        user: null,
       }),
     );
 
     await this.participantRepository.save(participantEntities);
 
-    return savedTournament;
+    return returnStruct(
+      true,
+      'Tournament Created Successfully',
+      savedTournament,
+    );
   }
 
   async findAll(): Promise<Tournament[]> {

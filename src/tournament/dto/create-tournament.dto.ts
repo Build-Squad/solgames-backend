@@ -46,7 +46,7 @@ export class CreateTournamentDto {
   @IsNumber({ maxDecimalPlaces: 8 })
   rewardAmount: number;
 
-  @IsISO8601()
+  @IsString()
   tournamentDateTime: string;
 
   @IsEnum(TournamentStatus)
