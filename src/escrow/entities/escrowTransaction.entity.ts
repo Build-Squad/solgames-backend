@@ -1,3 +1,4 @@
+// This table is to store all the transactions that happens in a particular escrow
 import {
   Entity,
   PrimaryGeneratedColumn,

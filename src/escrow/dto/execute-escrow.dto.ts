@@ -12,9 +12,6 @@ export class XcrowExecuteDto {
   transactionId: string;
 
   @IsString()
-  inviteCode: string;
-
-  @IsString()
   userId: string;
 
   @IsEnum(USER_ROLE)

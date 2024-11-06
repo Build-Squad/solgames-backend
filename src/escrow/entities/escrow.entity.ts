@@ -1,3 +1,4 @@
+// This table holds info about particular escrow created either while tournament creation or game creation
 import {
   Entity,
   PrimaryGeneratedColumn,
