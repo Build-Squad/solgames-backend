@@ -28,7 +28,7 @@ export class Escrow {
   @Column({ nullable: true })
   transactionHash: string;
 
-  @Column({ unique: true })
+  @Column({ unique: true, nullable: true })
   inviteCode: string;
 
   @OneToMany(() => EscrowTransaction, (transaction) => transaction.escrow, {

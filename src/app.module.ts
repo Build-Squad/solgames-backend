@@ -20,6 +20,7 @@ import { Withdrawal } from './escrow/entities/withdrawal.entity';
 import { TournamentModule } from './tournament/tournament.module';
 import { Tournament } from './tournament/entities/tournament.entity';
 import { TournamentParticipant } from './tournament/entities/tournament-participant.entity';
+import { TournamentMatch } from './tournament/entities/tournament-match';
 
 const { db_host, db_name, db_password, db_username, db_synchronize } =
   configuration.databaseConfig;
@@ -41,6 +42,7 @@ const { db_host, db_name, db_password, db_username, db_synchronize } =
         AccessCode,
         Withdrawal,
         Tournament,
+        TournamentMatch,
         TournamentParticipant,
       ],
       database: db_name,

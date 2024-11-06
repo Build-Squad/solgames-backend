@@ -1,17 +1,6 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-} from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete } from '@nestjs/common';
 import { TournamentService } from './tournament.service';
-import {
-  CreateTournamentDto,
-  UpdateTournamentDto,
-} from './dto/create-tournament.dto';
+import { CreateTournamentDto } from './dto/create-tournament.dto';
 import { Tournament } from './entities/tournament.entity';
 
 @Controller('tournaments')
