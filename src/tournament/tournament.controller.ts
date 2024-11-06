@@ -12,9 +12,9 @@ export class TournamentController {
     return this.tournamentService.create(createTournamentDto);
   }
 
-  @Get()
-  findAll(): Promise<Tournament[]> {
-    return this.tournamentService.findAll();
+  @Get(':userId')
+  getAdminTournaments(@Param('userId') userId: string) {
+    return this.tournamentService.getAdminTournaments(userId);
   }
 
   @Get(':id')

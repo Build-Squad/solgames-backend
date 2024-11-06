@@ -57,8 +57,9 @@ export class TournamentService {
     );
   }
 
-  async findAll(): Promise<Tournament[]> {
+  async getAdminTournaments(userId: string) {
     return this.tournamentRepository.find({
+      where: { createdBy: { id: userId } },
       relations: ['participants', 'createdBy'],
     });
   }
