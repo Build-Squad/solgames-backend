@@ -6,6 +6,10 @@ import { CreateTournamentDto } from './dto/create-tournament.dto';
 import { TournamentParticipant } from './entities/tournament-participant.entity';
 import { User } from '../user/entities/user.entity';
 import { returnStruct } from 'src/utils/helper';
+import {
+  TournamentGameStatus,
+  TournamentMatch,
+} from './entities/tournament-match';
 
 @Injectable()
 export class TournamentService {
@@ -15,6 +19,9 @@ export class TournamentService {
 
     @InjectRepository(TournamentParticipant)
     private participantRepository: Repository<TournamentParticipant>,
+
+    @InjectRepository(TournamentMatch)
+    private tournamentMatchRepository: Repository<TournamentMatch>,
 
     @InjectRepository(User)
     private userRepository: Repository<User>,
@@ -35,20 +42,56 @@ export class TournamentService {
     // Save the tournament first
     const savedTournament = await this.tournamentRepository.save(tournament);
 
-    // Map and save participants
-    const participantEntities = participants.map((participant) =>
-      this.participantRepository.create({
-        tournament: savedTournament,
-        alias: participant.alias,
-        walletAddress: participant.walletAddress,
+    // Create or find each participant user
+    const participantEntities = await Promise.all(
+      participants.map(async (participant) => {
+        let user = await this.userRepository.findOne({
+          where: { publicKey: participant.walletAddress },
+        });
 
-        // Here check if a user is alread there with the given wallet.
-        // If not, when a new user is created, check the wallet address and add the corresponding user here
-        user: null,
+        // Create the user if not already present
+        if (!user) {
+          user = this.userRepository.create({
+            publicKey: participant.walletAddress,
+            name: participant.alias,
+            verifier: 'wallet',
+          });
+          user = await this.userRepository.save(user);
+        }
+
+        // Create the participant entity for this tournament
+        return this.participantRepository.create({
+          tournament: savedTournament,
+          alias: participant.alias,
+          walletAddress: participant.walletAddress,
+          user: user,
+        });
       }),
     );
 
     await this.participantRepository.save(participantEntities);
+
+    // Shuffle participants for random pairing
+    const shuffledParticipants = [...participantEntities].sort(
+      () => Math.random() - 0.5,
+    );
+
+    // Create matches by pairing participants in sets of two
+    const tournamentMatches = [];
+    for (let i = 0; i < shuffledParticipants.length; i += 2) {
+      if (shuffledParticipants[i + 1]) {
+        const match = this.tournamentMatchRepository.create({
+          tournament: savedTournament,
+          playerOne: shuffledParticipants[i].user,
+          playerTwo: shuffledParticipants[i + 1].user,
+          tournamentGameStatus: TournamentGameStatus.Awaiting,
+        });
+        tournamentMatches.push(match);
+      }
+    }
+
+    // Save tournament matches
+    await this.tournamentMatchRepository.save(tournamentMatches);
 
     return returnStruct(
       true,
