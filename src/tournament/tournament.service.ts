@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Tournament } from './entities/tournament.entity';
@@ -84,7 +84,7 @@ export class TournamentService {
           tournament: savedTournament,
           playerOne: shuffledParticipants[i].user,
           playerTwo: shuffledParticipants[i + 1].user,
-          tournamentGameStatus: TournamentGameStatus.Awaiting,
+          tournamentGameStatus: TournamentGameStatus.Scheduled,
         });
         tournamentMatches.push(match);
       }
@@ -101,23 +101,41 @@ export class TournamentService {
   }
 
   async getAdminTournaments(userId: string) {
-    return this.tournamentRepository.find({
+    const tournaments = await this.tournamentRepository.find({
       where: { createdBy: { id: userId } },
       relations: ['participants', 'createdBy'],
     });
+    if (!tournaments) {
+      return returnStruct(false, 'Tournaments not found', null);
+    }
+
+    return returnStruct(
+      true,
+      'Admin Tournaments fetched successfully',
+      tournaments,
+    );
   }
 
-  async findOne(id: string): Promise<Tournament> {
-    const tournament = await this.tournamentRepository.findOne({
-      where: { id },
-      relations: ['participants', 'createdBy', 'winner'],
+  async getPlayerTournaments(userId: string) {
+    // Find all matches where the user is either playerOne or playerTwo
+    const userTournamentMatches = await this.tournamentMatchRepository.find({
+      where: [{ playerOne: { id: userId } }, { playerTwo: { id: userId } }],
+      relations: [
+        'tournament',
+        'tournament.createdBy',
+        'tournament.participants',
+        'playerOne',
+        'playerTwo',
+      ],
     });
-    if (!tournament) throw new NotFoundException('Tournament not found');
-    return tournament;
-  }
+    if (!userTournamentMatches) {
+      return returnStruct(false, 'User tournaments not found', null);
+    }
 
-  async remove(id: string): Promise<void> {
-    const tournament = await this.findOne(id);
-    await this.tournamentRepository.remove(tournament);
+    return returnStruct(
+      true,
+      'User Tournaments fetched successfully',
+      userTournamentMatches,
+    );
   }
 }

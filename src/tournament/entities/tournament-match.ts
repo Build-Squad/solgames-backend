@@ -12,8 +12,7 @@ import { Tournament } from './tournament.entity';
 import { User } from 'src/user/entities/user.entity';
 
 export enum TournamentGameStatus {
-  Awaiting = 'Awaiting', // When the tournament is created but both player's have not joined.
-  Scheduled = 'Scheduled', //When both player's have signed up/logged in.
+  Scheduled = 'Scheduled', // Default status
   InProgress = 'InProgress', //When the game has started at the designated time.
   Completed = 'Completed', //When the game is completed, either a winner or someone forfeit.
   Draw = 'Draw', //When the game is draw after being played.
@@ -40,7 +39,7 @@ export class TournamentMatch {
   @Column({
     type: 'enum',
     enum: TournamentGameStatus,
-    default: TournamentGameStatus.Awaiting,
+    default: TournamentGameStatus.Scheduled,
   })
   tournamentGameStatus: TournamentGameStatus;
 

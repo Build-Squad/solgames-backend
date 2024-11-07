@@ -1,7 +1,6 @@
-import { Controller, Get, Post, Body, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param } from '@nestjs/common';
 import { TournamentService } from './tournament.service';
 import { CreateTournamentDto } from './dto/create-tournament.dto';
-import { Tournament } from './entities/tournament.entity';
 
 @Controller('tournaments')
 export class TournamentController {
@@ -12,18 +11,13 @@ export class TournamentController {
     return this.tournamentService.create(createTournamentDto);
   }
 
-  @Get(':userId')
+  @Get('admin/:userId')
   getAdminTournaments(@Param('userId') userId: string) {
     return this.tournamentService.getAdminTournaments(userId);
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string): Promise<Tournament> {
-    return this.tournamentService.findOne(id);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string): Promise<void> {
-    return this.tournamentService.remove(id);
+  @Get('player/:userId')
+  async getPlayerTournaments(@Param('userId') userId: string) {
+    return await this.tournamentService.getPlayerTournaments(userId);
   }
 }
