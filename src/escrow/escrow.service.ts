@@ -280,6 +280,10 @@ export class EscrowService {
       where: { vaultId },
     });
 
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+    });
+
     // Create the escrow transaction record in the database
     const newEscrowTransaction = this.escrowTransactionRepository.create({
       amount: escrowAccount.amount,
@@ -287,7 +291,7 @@ export class EscrowService {
       status: ESCROW_TRANSACTION_STATUS.Completed,
       transactionHash: txHash,
       transactionId: transactionId,
-      userId,
+      user,
       role: userRole,
       transactionType,
     });

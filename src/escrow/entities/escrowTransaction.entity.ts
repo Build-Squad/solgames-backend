@@ -10,6 +10,7 @@ import {
   BeforeUpdate,
 } from 'typeorm';
 import { Escrow } from './escrow.entity';
+import { User } from 'src/user/entities/user.entity';
 
 enum USER_ROLE {
   Creator = 'Creator',
@@ -46,8 +47,8 @@ export class EscrowTransaction {
   @Column()
   transactionHash: string;
 
-  @Column()
-  userId: string;
+  @ManyToOne(() => User, (user) => user.transactions)
+  user: User;
 
   @Column({ nullable: true })
   transactionId: string;
