@@ -1,3 +1,4 @@
+// This table is to store all the transactions that happens in a particular escrow
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -9,16 +10,24 @@ import {
   BeforeUpdate,
 } from 'typeorm';
 import { Escrow } from './escrow.entity';
+import { User } from 'src/user/entities/user.entity';
 
 enum USER_ROLE {
   Creator = 'Creator',
   Acceptor = 'Acceptor',
+  Admin = 'Admin',
+  Player = 'Player',
 }
 
 export enum ESCROW_TRANSACTION_STATUS {
   Pending = 'Pending',
   Completed = 'Completed',
   Expired = 'Expired',
+}
+
+export enum ESCROW_TRANSACTION_TYPE {
+  Deposit = 'Deposit',
+  Withdrawal = 'Withdrawal',
 }
 
 @Entity()
@@ -29,14 +38,17 @@ export class EscrowTransaction {
   @ManyToOne(() => Escrow, (escrow) => escrow.transactions)
   escrow: Escrow;
 
+  @Column({ type: 'enum', enum: ESCROW_TRANSACTION_TYPE, nullable: true })
+  transactionType: ESCROW_TRANSACTION_TYPE;
+
   @Column('decimal', { precision: 20, scale: 8 })
   amount: number;
 
   @Column()
   transactionHash: string;
 
-  @Column()
-  userId: string;
+  @ManyToOne(() => User, (user) => user.transactions)
+  user: User;
 
   @Column({ nullable: true })
   transactionId: string;

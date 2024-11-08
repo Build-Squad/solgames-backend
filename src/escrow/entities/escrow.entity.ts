@@ -1,3 +1,4 @@
+// This table holds info about particular escrow created either while tournament creation or game creation
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -28,7 +29,7 @@ export class Escrow {
   @Column({ nullable: true })
   transactionHash: string;
 
-  @Column({ unique: true })
+  @Column({ unique: true, nullable: true })
   inviteCode: string;
 
   @OneToMany(() => EscrowTransaction, (transaction) => transaction.escrow, {

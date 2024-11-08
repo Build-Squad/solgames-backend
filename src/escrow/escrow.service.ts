@@ -7,6 +7,7 @@ import { Escrow } from './entities/escrow.entity';
 import { XcrowExecuteDto } from './dto/execute-escrow.dto';
 import {
   ESCROW_TRANSACTION_STATUS,
+  ESCROW_TRANSACTION_TYPE,
   EscrowTransaction,
 } from './entities/escrowTransaction.entity';
 import { CreateEscrowDto } from './dto/create-escrow.dto';
@@ -111,7 +112,7 @@ export class EscrowService {
         signedTransaction,
       });
 
-      // Create the escrow record in the database
+      // Create the escrow record in the database, for when the user deposits, will be stored in a different table
       const newEscrow = this.escrowRepository.create({
         amount,
         inviteCode: inviteCode,
@@ -216,14 +217,8 @@ export class EscrowService {
   }
 
   async executeDepositXcrow(xcrowExecuteDto: XcrowExecuteDto) {
-    const {
-      vaultId,
-      signedTransaction,
-      transactionId,
-      inviteCode,
-      userId,
-      userRole,
-    } = xcrowExecuteDto;
+    const { vaultId, signedTransaction, transactionId, userId, userRole } =
+      xcrowExecuteDto;
 
     try {
       const result = await this.xcrow.execute({
@@ -233,11 +228,12 @@ export class EscrowService {
       });
 
       this.saveEscrowTransactionInDb({
-        inviteCode,
+        vaultId,
         txHash: result?.txHash,
         transactionId,
         userId,
         userRole,
+        transactionType: ESCROW_TRANSACTION_TYPE.Deposit,
       });
 
       if (userRole == 'Acceptor') {
@@ -273,14 +269,19 @@ export class EscrowService {
   }
 
   async saveEscrowTransactionInDb({
-    inviteCode,
+    vaultId,
     txHash,
     transactionId,
     userId,
     userRole,
+    transactionType,
   }) {
     const escrowAccount = await this.escrowRepository.findOne({
-      where: { inviteCode },
+      where: { vaultId },
+    });
+
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
     });
 
     // Create the escrow transaction record in the database
@@ -290,8 +291,9 @@ export class EscrowService {
       status: ESCROW_TRANSACTION_STATUS.Completed,
       transactionHash: txHash,
       transactionId: transactionId,
-      userId,
+      user,
       role: userRole,
+      transactionType,
     });
 
     await this.escrowTransactionRepository.save(newEscrowTransaction);
@@ -491,4 +493,6 @@ export class EscrowService {
   remove(id: number) {
     return `This action removes a #${id} escrow`;
   }
+
+  // Tournament escrow services
 }

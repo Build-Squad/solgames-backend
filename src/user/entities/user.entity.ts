@@ -1,4 +1,5 @@
 import { AccessCode } from 'src/access-codes/entities/access-code.entity';
+import { EscrowTransaction } from 'src/escrow/entities/escrowTransaction.entity';
 import { Withdrawal } from 'src/escrow/entities/withdrawal.entity';
 import { Games } from 'src/games/entities/game.entity';
 import {
@@ -38,6 +39,9 @@ export class User {
 
   @OneToMany(() => Withdrawal, (withdrawal) => withdrawal.user)
   withdrawals: Withdrawal[];
+
+  @OneToMany(() => EscrowTransaction, (transaction) => transaction.user)
+  transactions: EscrowTransaction[];
 
   // Table columns
   @PrimaryGeneratedColumn('uuid')
