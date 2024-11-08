@@ -10,10 +10,15 @@ import {
   TournamentGameStatus,
   TournamentMatch,
 } from './entities/tournament-match';
+import { InjectQueue } from '@nestjs/bull';
+import { Queue } from 'bull';
+import { ScheduleGameJobs } from 'src/games/entities/scheduleGame.entity';
 
 @Injectable()
 export class TournamentService {
   constructor(
+    @InjectQueue('tournaments') private readonly tournamentsQueue: Queue,
+
     @InjectRepository(Tournament)
     private tournamentRepository: Repository<Tournament>,
 
@@ -25,6 +30,9 @@ export class TournamentService {
 
     @InjectRepository(User)
     private userRepository: Repository<User>,
+
+    @InjectRepository(ScheduleGameJobs)
+    private scheduledJobRepository: Repository<ScheduleGameJobs>,
   ) {}
 
   async create(createTournamentDto: CreateTournamentDto) {
@@ -92,6 +100,29 @@ export class TournamentService {
 
     // Save tournament matches
     await this.tournamentMatchRepository.save(tournamentMatches);
+
+    // Schedule a Bull job to update the tournament status at the designated time
+
+    const delay =
+      new Date(tournamentData.tournamentDateTime).getTime() -
+      new Date().getTime();
+
+    // Store job entry in the database
+    const scheduledJob = new ScheduleGameJobs();
+    scheduledJob.gameId = savedTournament.id;
+    scheduledJob.status = 'Scheduled';
+    scheduledJob.scheduledTime = new Date();
+
+    const job = await this.tournamentsQueue.add(
+      'startTournament',
+      { tournamentId: savedTournament.id },
+      {
+        delay: delay,
+      },
+    );
+
+    scheduledJob.jobId = job.id.toString();
+    await this.scheduledJobRepository.save(scheduledJob);
 
     return returnStruct(
       true,

@@ -7,6 +7,7 @@ import {
   IsOptional,
   IsISO8601,
   IsNumber,
+  IsDateString,
 } from 'class-validator';
 import {
   TournamentStatus,
@@ -46,8 +47,8 @@ export class CreateTournamentDto {
   @IsNumber({ maxDecimalPlaces: 8 })
   rewardAmount: number;
 
-  @IsString()
-  tournamentDateTime: string;
+  @IsDateString()
+  tournamentDateTime: Date;
 
   @IsEnum(TournamentStatus)
   @IsOptional()
