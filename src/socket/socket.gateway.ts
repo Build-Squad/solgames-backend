@@ -64,11 +64,57 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
+  @SubscribeMessage('joinTournamentMatch')
+  async handleJoinTournamentMatch(
+    client: Socket,
+    { userId, tournamentId }: { userId: string; tournamentId: string },
+  ) {
+    const { game, error, errorType } =
+      await this.gameService.addPlayerToTournamentGame(tournamentId, userId);
+
+    if (game) {
+      client.join(tournamentId);
+      this.server.to(tournamentId).emit('playerJoined', {
+        id: game.id,
+        chess: game.chess.fen(),
+        players: game.players,
+        capturedWhitePieces: game.capturedWhitePieces,
+        capturedBlackPieces: game.capturedBlackPieces,
+      });
+    } else {
+      client.emit('error', {
+        event: 'joinTournamentMatch',
+        errorMessage: error,
+        errorType,
+      });
+    }
+  }
+
   @SubscribeMessage('inactiveUser')
   async handlePlayerInactivity(
     client: Socket,
-    { gameId }: { gameId: string; userId: string; inactivityType: string },
+    {
+      gameId,
+      matchType = 'game',
+    }: {
+      gameId: string;
+      userId: string;
+      inactivityType: string;
+      matchType: string;
+    },
   ) {
+    if (matchType == 'tournament') {
+      const { error, errorType, currentPlayer } =
+        await this.gameService.inactiveTournamentPlayer(gameId);
+
+      this.server.to(gameId).emit('error', {
+        event: 'inactivePlayer',
+        errorMessage: error,
+        errorType,
+        currentPlayer,
+      });
+      return;
+    }
     const { error, errorType, currentPlayer } =
       await this.gameService.inactivePlayer(gameId);
 
@@ -84,18 +130,34 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('surrenderCall')
   async handlePlayerSurrender(
     client: Socket,
-    { gameId, userId }: { gameId: string; userId: string },
+    {
+      gameId,
+      userId,
+      matchType = 'game',
+    }: { gameId: string; userId: string; matchType: string },
   ) {
-    const { error, errorType, currentPlayer } =
-      await this.gameService.surrenderCall(gameId, userId);
+    if (matchType == 'tournament') {
+      const { error, errorType, currentPlayer } =
+        await this.gameService.tournamentSurrenderCall(gameId, userId);
 
-    this.server.to(gameId).emit('error', {
-      event: 'inactivePlayer',
-      errorMessage: error,
-      errorType,
-      currentPlayer,
-    });
-    return;
+      this.server.to(gameId).emit('error', {
+        event: 'surrenderCall',
+        errorMessage: error,
+        errorType,
+        currentPlayer,
+      });
+    } else {
+      const { error, errorType, currentPlayer } =
+        await this.gameService.surrenderCall(gameId, userId);
+
+      this.server.to(gameId).emit('error', {
+        event: 'surrenderCall',
+        errorMessage: error,
+        errorType,
+        currentPlayer,
+      });
+      return;
+    }
   }
 
   @SubscribeMessage('makeMove')
@@ -105,12 +167,19 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
       gameId,
       move,
       userId,
-    }: { gameId: string; move: { from: string; to: string }; userId: string },
+      matchType = 'game',
+    }: {
+      gameId: string;
+      move: { from: string; to: string };
+      userId: string;
+      matchType: string;
+    },
   ) {
     const { valid, game, error, errorType } = await this.gameService.makeMove(
       gameId,
       userId,
       move,
+      matchType,
     );
     if (valid && game) {
       this.server.to(gameId).emit('moveMade', {
