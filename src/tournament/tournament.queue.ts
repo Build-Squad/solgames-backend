@@ -5,6 +5,10 @@ import { Repository } from 'typeorm';
 import { Tournament, TournamentStatus } from './entities/tournament.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ScheduleGameJobs } from 'src/games/entities/scheduleGame.entity';
+import {
+  TournamentGameStatus,
+  TournamentMatch,
+} from './entities/tournament-match';
 
 @Injectable()
 @Processor('tournaments')
@@ -14,6 +18,8 @@ export class TournamentQueue {
     private readonly tournamentRepository: Repository<Tournament>,
     @InjectRepository(ScheduleGameJobs)
     private readonly scheduledJobRepository: Repository<ScheduleGameJobs>,
+    @InjectRepository(TournamentMatch)
+    private readonly tournamentMatchRepository: Repository<TournamentMatch>,
   ) {}
 
   @Process('startTournament')
@@ -40,6 +46,19 @@ export class TournamentQueue {
       // Update tournament status to 'ongoing'
       tournament.status = TournamentStatus.Ongoing;
       await this.tournamentRepository.save(tournament);
+
+      // Find and update all matches associated with the tournament to 'InProgress'
+      const matches = await this.tournamentMatchRepository.find({
+        where: { tournament: { id: tournamentId } },
+      });
+
+      for (const match of matches) {
+        match.tournamentGameStatus = TournamentGameStatus.InProgress;
+        await this.tournamentMatchRepository.save(match);
+      }
+
+      // Update the scheduled job status to 'ongoing'
+
       scheduledJob.status = TournamentStatus.Ongoing;
     } else {
       console.error(`Tournament with ID ${tournamentId} not found.`);

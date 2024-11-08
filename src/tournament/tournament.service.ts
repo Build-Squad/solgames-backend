@@ -169,4 +169,21 @@ export class TournamentService {
       userTournamentMatches,
     );
   }
+
+  async getTournamentDetails(tournamendId: string) {
+    // Find all matches where the user is either playerOne or playerTwo
+    const tournamentMatch = await this.tournamentMatchRepository.findOne({
+      where: { tournament: { id: tournamendId } },
+      relations: ['tournament', 'playerOne', 'playerTwo'],
+    });
+    if (!tournamentMatch) {
+      return returnStruct(false, 'Tournament not found', null);
+    }
+
+    return returnStruct(
+      true,
+      'Tournament fetched successfully',
+      tournamentMatch,
+    );
+  }
 }

@@ -20,4 +20,9 @@ export class TournamentController {
   async getPlayerTournaments(@Param('userId') userId: string) {
     return await this.tournamentService.getPlayerTournaments(userId);
   }
+
+  @Get('tournament/:tournamentId')
+  async getTournamentDetails(@Param('userId') userId: string) {
+    return await this.tournamentService.getTournamentDetails(userId);
+  }
 }
